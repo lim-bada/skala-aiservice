@@ -1,0 +1,6 @@
+.env
+.venv/
+session.db
+__pycache__/
+*.log
+*.pdf
