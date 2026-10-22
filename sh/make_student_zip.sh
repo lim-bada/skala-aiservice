@@ -21,10 +21,16 @@ rm -f "$OUT"
 rm -rf "/tmp/${NAME}"
 mkdir -p "/tmp/${NAME}"
 
+# [추가] 초안 원문·저장 절차가 담긴 워크플로 DB와 SQLite 보조 파일도 배포본에서 제외한다.
 rsync -a \
   --exclude='.venv' \
   --exclude='__pycache__' \
   --exclude='session.db' \
+  --exclude='workflow.db' \
+  --exclude='workflow.db-wal' \
+  --exclude='workflow.db-shm' \
+  --exclude='workflow.db-journal' \
+  --exclude='eval/results' \
   --exclude='*.log' \
   --exclude='.env' \
   --exclude='.DS_Store' \

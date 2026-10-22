@@ -2,7 +2,12 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8" />
-<title>운영 에이전트 채팅 (Vue)</title>
+<!-- [추가] 모바일에서도 워크플로의 반응형 레이아웃을 사용한다. -->
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- [수정] 채팅과 조건부 워크플로를 함께 제공하는 화면 제목이다. -->
+<title>운영 진단 · 조건부 워크플로</title>
+<!-- [추가] 별도 빌드 없이 워크플로 전용 스타일을 불러온다. -->
+<link rel="stylesheet" href="/web/workflow.css" />
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
@@ -23,6 +28,15 @@
     font-weight: 600; font-size: 15px;
   }
   header span { color: #8b8bd8; font-weight: 400; font-size: 13px; margin-left: 8px; }
+  /* [추가] 탭을 전환해도 각 패널의 대화·진행 상태와 스트림 연결을 유지한다. */
+  .mode-tabs {
+    display: flex; flex-shrink: 0; gap: 8px; padding: 10px 20px;
+    background: #262638; border-bottom: 1px solid #3a3a52;
+  }
+  .mode-tabs button { background: transparent; color: #b9b9d4; padding: 9px 14px; }
+  .mode-tabs button[aria-selected="true"] { background: #5b5bd6; color: #fff; }
+  .mode-tabs button:focus-visible { outline: 2px solid #b5b5ff; outline-offset: 2px; }
+  .chat-panel { display: flex; flex: 1; min-height: 0; flex-direction: column; }
   #log {
     flex: 1; min-height: 0;   /* flex 자식 기본 최소높이(콘텐츠 크기)를 풀어줘야
                                  내용이 길어져도 바디가 안 늘어나고 여기서만 스크롤됨 */
@@ -80,6 +94,15 @@
 <body>
 <div id="app">
   <header>운영 인시던트 대응 에이전트 <span>{{ backendLabel }}</span></header>
+  <!-- [추가] 키보드 방향키·Home·End로도 이동할 수 있는 진단 모드 탭이다. -->
+  <nav class="mode-tabs" role="tablist" aria-label="진단 모드" @keydown="onModeKeydown">
+    <button id="chat-tab" type="button" role="tab" aria-controls="chat-panel"
+      :aria-selected="mode === 'chat'" :tabindex="mode === 'chat' ? 0 : -1" @click="mode = 'chat'">일반 진단</button>
+    <button id="workflow-tab" type="button" role="tab" aria-controls="workflow-panel"
+      :aria-selected="mode === 'workflow'" :tabindex="mode === 'workflow' ? 0 : -1" @click="mode = 'workflow'">조건부 워크플로</button>
+  </nav>
+  <!-- [추가] v-show로 기존 채팅 컴포넌트를 유지하고 독립 스크롤 영역을 만든다. -->
+  <section id="chat-panel" class="chat-panel" role="tabpanel" aria-labelledby="chat-tab" v-show="mode === 'chat'">
   <div id="log" ref="logEl">
     <template v-for="item in log" :key="item.id">
       <div v-if="item.kind === 'user'" class="row user">
@@ -103,14 +126,22 @@
   <form @submit.prevent="onSubmit">
     <input
       v-model="input"
+      aria-label="일반 진단 요청"
       autocomplete="off"
       placeholder="예: auth-service 로그인 응답이 느려졌어요. 원인 확인해주세요"
     />
     <button type="submit" :disabled="sending">보내기</button>
   </form>
+  </section>
+  <!-- [추가] POST 실행 스트림은 워크플로 컴포넌트가 관리하며 탭 전환만으로 재실행하지 않는다. -->
+  <workflow-panel id="workflow-panel" role="tabpanel" aria-labelledby="workflow-tab"
+    :backend="backendType" v-show="mode === 'workflow'"></workflow-panel>
 </div>
 
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<!-- [추가] SSE 해석과 워크플로 UI를 기존 채팅 코드와 분리한다. -->
+<script src="/web/workflow_stream.js"></script>
+<script src="/web/workflow.js"></script>
 <script>
 const { createApp, ref, reactive, nextTick } = Vue;
 
@@ -127,8 +158,13 @@ const STEP_LABELS = {
 };
 
 createApp({
+  // [추가] Vue 글로벌 빌드에서 별도 파일의 워크플로 패널을 등록한다.
+  components: { WorkflowPanel: window.WorkflowUI.WorkflowPanel },
   setup() {
     const backendLabel = ref('all_total_vue');
+    // [추가] 실제 모델 종류와 선택 탭을 분리해 fake 예시 안내에 전달한다.
+    const backendType = ref('');
+    const mode = ref('chat');
     const log = ref([]);
     const input = ref('');
     const sending = ref(false);
@@ -136,9 +172,25 @@ createApp({
     const thread = 't-web-' + Math.random().toString(36).slice(2, 8);
     let nextId = 0;
 
-    fetch('/health').then(r => r.json()).then(h => {
-      backendLabel.value = `${h.llm_backend} 실모델(${h.fast_llm}/${h.quality_llm}) · all_total_vue`;
-    }).catch(() => {});
+    // [수정] 타임아웃 오류 JSON을 정상 모델 정보로 표시하지 않는다.
+    fetch('/health').then(r => {
+      if (!r.ok) throw new Error('백엔드 상태 확인 실패');
+      return r.json();
+    }).then(h => {
+      // [수정] fake 백엔드를 실모델로 잘못 표시하지 않는다.
+      backendType.value = h.llm_backend || '';
+      const kind = h.llm_backend === 'fake' ? '고정 예시' : '실모델';
+      backendLabel.value = `${h.llm_backend} ${kind}(${h.fast_llm}/${h.quality_llm}) · all_total_vue`;
+    }).catch(() => { backendLabel.value = '백엔드 상태 확인 실패 · 서버 연결을 확인하세요'; });
+
+    // [추가] 자동 활성화 방식의 두 탭에서 키보드 초점과 선택 상태를 함께 변경한다.
+    function onModeKeydown(event) {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      mode.value = event.key === 'Home' ? 'chat' : event.key === 'End' ? 'workflow'
+        : mode.value === 'chat' ? 'workflow' : 'chat';
+      document.getElementById(mode.value === 'chat' ? 'chat-tab' : 'workflow-tab').focus();
+    }
 
     async function scrollToBottom() {
       await nextTick();
@@ -147,7 +199,8 @@ createApp({
 
     function onSubmit() {
       const text = input.value.trim();
-      if (!text) return;
+      // [수정] 전송 중 Enter 입력도 기존 채팅의 중복 요청을 만들지 않게 막는다.
+      if (!text || sending.value) return;
 
       log.value.push({ id: nextId++, kind: 'user', text });
       input.value = '';
@@ -203,7 +256,8 @@ createApp({
       es.onerror = () => { es.close(); sending.value = false; };
     }
 
-    return { backendLabel, log, input, sending, logEl, onSubmit };
+    // [추가] 모드와 모델 종류를 템플릿·워크플로 패널에 공개한다.
+    return { backendLabel, backendType, mode, onModeKeydown, log, input, sending, logEl, onSubmit };
   },
 }).mount('#app');
 </script>

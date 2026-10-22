@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 #
-# all_total_vue — web_demo_server.py(브라우저 채팅 화면, 이 실습의 "프론트엔드" 역할)를
+# [수정] 채팅과 조건부 워크플로 화면을 제공하는 웹 서버를 함께 안내한다.
+# all_total_vue — web_demo_server.py(브라우저 진단 화면, 이 실습의 "프론트엔드" 역할)를
 # 띄우는 스크립트.
 #
 # 이 실습엔 별도 npm/Next.js 프론트엔드가 없고, web_demo_server.py + web_chat.html
 # 조합이 그 역할을 한다 — server.py(8100, 백엔드)는 건드리지 않고, web_chat.html을
-# 같은 출처(origin)로 띄운 뒤 /chat, /chat/stream 요청을 8100으로 프록시해주는
+# 같은 출처(origin)로 띄운 뒤 /chat, /chat/stream, /workflows 요청을 8100으로 프록시해주는
 # 아주 얇은 레이어다(브라우저 CORS 제약을 피하기 위함).
 # web_chat.html 내부만 바닐라 JS 대신 Vue 3(CDN 글로벌 빌드, 빌드 단계 없음)로
 # 되어 있다는 점이 all_total과 다르다.
@@ -51,14 +52,15 @@ for _ in $(seq 1 40); do
     sleep 0.5
 done
 
+# [수정] 워크플로 탭과 POST 실행 중계도 같은 실행 방법으로 사용할 수 있다.
 cat <<EOF
 
 ################################################################
  프론트엔드가 떠 있습니다 → http://localhost:8600
- (web_chat.html을 띄우고 /chat·/chat/stream을 백엔드 8100으로 프록시)
+ (채팅·조건부 워크플로 화면 / 백엔드 8100으로 요청 중계)
 ################################################################
 
-브라우저에서 http://localhost:8600 접속해 바로 채팅해볼 수 있습니다.
+브라우저에서 http://localhost:8600 에 접속해 일반 진단 또는 조건부 워크플로 탭을 사용하세요.
 종료하려면 이 터미널에서 Ctrl+C.
 EOF
 

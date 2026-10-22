@@ -1,6 +1,23 @@
 .env
 .venv/
+# [추가] macOS가 생성한 폴더 메타데이터는 저장소에 포함하지 않는다.
+.DS_Store
 session.db
+# [추가] 워크플로 정의 DB와 SQLite 보조 파일은 소스에서 제외한다.
+workflow.db
+workflow.db-wal
+workflow.db-shm
+workflow.db-journal
 __pycache__/
 *.log
+# [추가] 원문 후보·실행 trace·로컬 승인 미리보기는 평가 실행 산출물로 분리한다.
+eval/results/
 *.pdf
+AGENTS.md
+assignment1/
+# [추가] 제출 보고서에 포함한 기능·실행·평가 캡처는 Git으로 함께 관리한다.
+# [추가] assignment1/ 규칙에 가려진 부모 폴더도 먼저 복원해야 PNG 예외가 적용된다.
+!/doc/images/assignment1/
+!/doc/images/assignment1/*.png
+presentation/
+*.pptx

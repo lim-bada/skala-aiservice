@@ -8,6 +8,9 @@ import re
 
 from langsmith import traceable
 
+# [추가] 새 워크플로 생성 메서드의 반환 계약을 명시하고 타입 조회도 지원한다.
+from .workflow.models import WorkflowModelResponse
+
 
 class FakeLLM:
     def __init__(self, name: str, usd_per_1k_tokens: float):
@@ -22,6 +25,28 @@ class FakeLLM:
 
 class FastLLM(FakeLLM):
     """분류·계획 등 짧고 정형적인 단계 전담 (저비용)."""
+
+    # [추가] 기존 분류·계획은 유지하고, 정확히 일치하는 fixture로 새 워크플로 생성 계약을 제공한다.
+    @traceable(run_type="llm", name="fast_llm.compile_workflow")
+    async def compile_workflow(
+        self,
+        query: str,
+        catalog: dict,
+        schema: dict,
+        errors: list[dict] | None = None,
+        previous_response: str | None = None,
+    ) -> WorkflowModelResponse:
+        # [추가] 워크플로 모드를 사용할 때만 fixture helper를 불러와 기존 경로와 분리한다.
+        from .workflow.fake_compile import compile_fake_workflow
+
+        return compile_fake_workflow(
+            query=query,
+            catalog=catalog,
+            schema=schema,
+            model_name=self.name,
+            errors=errors,
+            previous_response=previous_response,
+        )
 
     @traceable(run_type="llm", name="fast_llm.route")
     def route(self, query: str) -> tuple[dict, dict]:
@@ -89,6 +114,51 @@ class FastLLM(FakeLLM):
 
 class QualityLLM(FakeLLM):
     """최종 답변 작성 전담 (고품질·고비용)."""
+
+    # [추가] 새 워크플로 경로는 실제 런북의 문단 참조 JSON만 반환하고 사실 출력은 서버에 맡긴다.
+    @traceable(run_type="llm", name="quality_llm.write_workflow")
+    async def write_workflow(
+        self,
+        query: str,
+        collected: list[dict],
+        trace: list[dict],
+        attempt: int,
+        feedback: str | None,
+        on_token=None,
+    ) -> WorkflowModelResponse:
+        import json
+
+        from .workflow.models import WorkflowModelUsage
+        from .workflow.report_prompting import build_workflow_report_messages
+
+        from .workflow.report_content import build_runbook_sources
+
+        # [추가] fake도 관측·분기를 재작성하지 않고 실제 런북의 문단 참조만 반환한다.
+        content = json.dumps({"summaries": [
+            {"source_id": source["source_id"], "block_id": source["blocks"][0]["block_id"],
+             "summary": "런북은 선택 문단의 점검 절차를 안내합니다. 원문의 전제조건을 확인하세요."}
+            for source in build_runbook_sources(collected)
+        ]}, ensure_ascii=False)
+
+        # [추가] 공통 보고 프롬프트 전체와 출력의 문자 수로 토큰을 추정하고 실측과 구분한다.
+        messages = build_workflow_report_messages(query, collected, trace, attempt, feedback)
+        input_tokens = (len(json.dumps(messages, ensure_ascii=False)) + 3) // 4
+        output_tokens = (len(content) + 3) // 4
+        response = WorkflowModelResponse(
+            content=content,
+            usage=WorkflowModelUsage(
+                model=self.name,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                total_tokens=input_tokens + output_tokens,
+                measurement="estimated",
+            ),
+            complete=True,
+        )
+        # [추가] fake는 토큰 스트림을 흉내 내지 않고 완성된 요약 JSON을 콜백에 한 번 전달한다.
+        if on_token is not None:
+            on_token(content)
+        return response
 
     @traceable(run_type="llm", name="quality_llm.write")
     async def write(self, query: str, collected: list[dict], attempt: int,

@@ -26,7 +26,39 @@ from pathlib import Path
 import httpx
 from langsmith import traceable
 
+# [추가] 기존 진단 호출과 분리된 워크플로 생성 계약·공통 프롬프트를 사용한다.
+from agent.workflow.models import WorkflowModelResponse, WorkflowModelUsage
+from agent.workflow.prompting import build_workflow_messages
+# [추가] 실행 자료·조건 trace를 공유 보고 프롬프트로 구성한다.
+from agent.workflow.report_prompting import build_workflow_report_messages
+
 OPENAI_URL = "https://api.openai.com/v1/chat/completions"
+
+
+# [추가] 생성·보고 응답에서 실측 사용량을 같은 규칙으로 추출하고 누락값을 보존한다.
+def _workflow_usage(data: dict, model_name: str) -> WorkflowModelUsage:
+    reported = data.get("usage") or {}
+
+    # [추가] bool·음수·문자열 카운트를 정수 토큰 사용량으로 오인하지 않는다.
+    def token_count(key: str) -> int | None:
+        value = reported.get(key)
+        return value if type(value) is int and value >= 0 else None
+
+    input_tokens = token_count("prompt_tokens")
+    output_tokens = token_count("completion_tokens")
+    total_tokens = token_count("total_tokens")
+    if total_tokens is None and input_tokens is not None and output_tokens is not None:
+        total_tokens = input_tokens + output_tokens
+    return WorkflowModelUsage(
+        model=model_name,
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        total_tokens=total_tokens,
+        measurement="reported" if any(
+            count is not None
+            for count in (input_tokens, output_tokens, total_tokens)
+        ) else "unavailable",
+    )
 
 
 def _load_known_systems() -> set[str]:
@@ -102,11 +134,60 @@ class OpenAILLM:
         tokens = data.get("usage", {}).get("total_tokens", 0)
         usage = {"model": self.name, "tokens": tokens,
                  "usd": round(tokens / 1000 * self.usd_per_1k, 6)}
+        # [추가] 기존 요청·응답 동작을 유지하며 평가용 실측 입출력 토큰과 누락 여부를 제공한다.
+        usage.update(_workflow_usage(data, self.name).model_dump(mode="json"))
         return content, usage
 
 
 class OpenAIFastLLM(OpenAILLM):
     """분류·계획·단순 대화 전담 (저비용 모델, 기본 gpt-4o-mini)."""
+
+    # [추가] 워크플로 JSON 원문을 비동기로 생성하고 검증·복구 판단은 상위 컴파일러에 맡긴다.
+    @traceable(run_type="llm", name="openai_fast.compile_workflow")
+    async def compile_workflow(
+        self,
+        query: str,
+        catalog: dict,
+        schema: dict,
+        errors: list[dict] | None = None,
+        previous_response: str | None = None,
+    ) -> WorkflowModelResponse:
+        if not self.api_key.strip():
+            raise RuntimeError(
+                "OPENAI_API_KEY가 설정되지 않았습니다 — .env 또는 환경변수로 지정하세요."
+            )
+        payload = {
+            "model": self.model,
+            "messages": build_workflow_messages(
+                query, catalog, schema, errors=errors,
+                previous_response=previous_response,
+            ),
+            "temperature": 0,
+            "response_format": {"type": "json_object"},
+            "max_completion_tokens": 4096,
+        }
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(OPENAI_URL, json=payload, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+
+        # [추가] 공급자가 보고한 정수 토큰만 기록하고 누락값을 0으로 만들어내지 않는다.
+        usage = _workflow_usage(data, self.name)
+
+        # [추가] 거절·출력 중단을 보존하고 JSON 파싱·코드펜스 제거·대상 보정을 하지 않는다.
+        choice = data["choices"][0]
+        message = choice["message"]
+        content = message.get("content")
+        return WorkflowModelResponse(
+            content="" if content is None else content,
+            usage=usage,
+            refusal=message.get("refusal"),
+            complete=choice.get("finish_reason") == "stop",
+        )
 
     @traceable(run_type="llm", name="openai_fast.route")
     def route(self, query: str) -> tuple[dict, dict]:
@@ -207,6 +288,54 @@ class OpenAIFastLLM(OpenAILLM):
 
 class OpenAIQualityLLM(OpenAILLM):
     """최종 답변 작성 전담 (고품질 모델, 기본 gpt-4o)."""
+
+    # [추가] 실제 런북 문단의 참조 JSON을 생성하고 완료·거절·사용량을 보존한다.
+    @traceable(run_type="llm", name="openai_quality.write_workflow")
+    async def write_workflow(
+        self,
+        query: str,
+        collected: list[dict],
+        trace: list[dict],
+        attempt: int,
+        feedback: str | None,
+        on_token=None,
+    ) -> WorkflowModelResponse:
+        """응답 전체를 한 번 전달한다. 공급자의 토큰 단위 스트리밍 호출은 아니다."""
+        if not self.api_key.strip():
+            raise RuntimeError(
+                "OPENAI_API_KEY가 설정되지 않았습니다 — .env 또는 환경변수로 지정하세요."
+            )
+        payload = {
+            "model": self.model,
+            "messages": build_workflow_report_messages(
+                query, collected, trace, attempt, feedback,
+            ),
+            "temperature": 0,
+            "max_completion_tokens": 4096,
+        }
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(OPENAI_URL, json=payload, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+
+        # [추가] 거절·길이 제한과 원문을 그대로 전달하며 형식 판정은 보고 서비스가 수행한다.
+        choice = data["choices"][0]
+        message = choice["message"]
+        content = message.get("content")
+        result = WorkflowModelResponse(
+            content="" if content is None else content,
+            usage=_workflow_usage(data, self.name),
+            refusal=message.get("refusal"),
+            complete=choice.get("finish_reason") == "stop",
+        )
+        # [추가] 검증된 비어 있지 않은 본문만 한 번 중계하며 원문 공백을 변경하지 않는다.
+        if result.content.strip() and on_token is not None:
+            on_token(result.content)
+        return result
 
     @traceable(run_type="llm", name="openai_quality.write")
     async def write(self, query: str, collected: list[dict], attempt: int,

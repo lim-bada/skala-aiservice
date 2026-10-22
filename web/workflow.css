@@ -1,0 +1,130 @@
+/* [추가] 새 파일 전체: 기존 채팅 전역 스타일과 분리된 워크플로 패널·반응형 레이아웃. */
+.workflow-panel { flex: 1; min-height: 0; overflow: auto; padding: 22px; background: #191925; color: #e2e2f0; line-height: 1.55; }
+.workflow-panel *, .workflow-panel *::before, .workflow-panel *::after { box-sizing: border-box; }
+.workflow-panel h2, .workflow-panel h3, .workflow-panel h4, .workflow-panel h5, .workflow-panel p { margin: 0 0 10px; }
+.workflow-panel h2 { font-size: 21px; }
+.workflow-panel h3 { font-size: 17px; }
+.workflow-panel h4 { font-size: 14px; }
+.workflow-panel h5 { font-size: 12px; color: #bdbdd7; }
+.workflow-panel button { flex: none; padding: 9px 13px; border: 1px solid #7474ec; border-radius: 8px; background: #5858c5; color: #fff; font: inherit; font-size: 13px; cursor: pointer; line-height: 1.4; }
+.workflow-panel button:hover:not(:disabled) { background: #6868d7; }
+.workflow-panel button:disabled { cursor: not-allowed; background: #303043; border-color: #49495d; color: #aaaabe; }
+.workflow-panel button.workflow-secondary { background: #2b2b40; border-color: #51516d; color: #e3e3f6; }
+.workflow-panel button.workflow-secondary:hover:not(:disabled) { background: #393954; }
+.workflow-panel :is(button, input, textarea, summary):focus-visible { outline: 2px solid #b3adff; outline-offset: 3px; }
+.workflow-panel input, .workflow-panel textarea { width: 100%; flex: initial; background: #171723; color: #f0f0fa; border: 1px solid #53536b; border-radius: 8px; padding: 10px 12px; font: inherit; font-size: 14px; }
+.workflow-panel textarea { resize: vertical; min-height: 100px; max-height: 340px; line-height: 1.6; }
+.workflow-panel input:disabled, .workflow-panel textarea:disabled { opacity: .7; }
+.workflow-panel form { margin: 0; border: 0; }
+.workflow-panel small { color: #b5b5cc; font-size: 12px; }
+.workflow-panel pre { white-space: pre-wrap; overflow-wrap: anywhere; font-family: inherit; font-size: 13px; margin: 10px 0 0; line-height: 1.75; max-height: 420px; overflow: auto; }
+.workflow-panel code { font: 12px ui-monospace, SFMono-Regular, Consolas, monospace; overflow-wrap: anywhere; }
+.workflow-panel summary { cursor: pointer; font-size: 13px; padding: 7px 0; }
+.workflow-intro, .workflow-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.workflow-intro { margin-bottom: 16px; }
+.workflow-intro p { color: #b5b5cc; margin: 0; font-size: 14px; }
+.workflow-section-heading { margin-bottom: 12px; }
+.workflow-section-heading :is(h3, p) { margin-bottom: 0; }
+.workflow-layout { display: grid; grid-template-columns: minmax(235px, 290px) minmax(0, 1fr); gap: 18px; max-width: 1320px; margin: 0 auto; align-items: start; }
+.workflow-box { background: #242435; border: 1px solid #414158; border-radius: 12px; padding: 18px; min-width: 0; }
+.workflow-main { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.workflow-badge { display: inline-block; border: 1px solid #555571; border-radius: 20px; padding: 3px 9px; color: #d1d0f8; font-size: 11px; white-space: nowrap; }
+.workflow-notice, .workflow-error { border: 1px solid #68678d; background: #2b2941; padding: 12px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; overflow-wrap: anywhere; }
+.workflow-error { border-color: #b56c7c; background: #392833; color: #ffcfda; }
+.workflow-error p:last-child { margin-bottom: 0; }
+.workflow-error button { margin-top: 6px; }
+.workflow-muted { color: #b2b2ca; font-size: 12px; }
+.workflow-text-error { color: #ffb8c4; }
+.workflow-checkbox { display: flex; align-items: center; gap: 7px; font-size: 13px; margin-bottom: 12px; }
+.workflow-panel .workflow-checkbox input { width: 16px; height: 16px; padding: 0; accent-color: #9d96ff; }
+/* [추가] 목록 응답과 선택 미리보기는 별개 영역으로 두고 긴 이름도 패널 안에서 줄바꿈한다. */
+.workflow-saved-list { list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 7px; }
+.workflow-saved-list button { text-align: left; width: 100%; background: #1e1e2e; border-color: #474760; overflow-wrap: anywhere; }
+.workflow-saved-list button strong, .workflow-saved-list button span { display: block; }
+.workflow-saved-list button span { margin-top: 5px; font-size: 10px; color: #b8b8ce; }
+.workflow-saved-list button.workflow-active { border-color: #b7b0ff; box-shadow: inset 3px 0 #b7b0ff; }
+.workflow-pagination { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 12px; }
+.workflow-catalog { border-top: 1px solid #42425b; margin-top: 18px; padding-top: 10px; font-size: 12px; }
+.workflow-catalog h4 { margin-top: 12px; }
+.workflow-catalog p { overflow-wrap: anywhere; }
+.workflow-tags { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0 12px; }
+.workflow-tags code { background: #34344c; border-radius: 4px; padding: 3px 5px; }
+.workflow-panel form.workflow-generate { display: flex; flex-direction: column; gap: 12px; padding: 18px; background: #242435; border: 1px solid #414158; }
+.workflow-generate .workflow-section-heading { margin-bottom: 0; }
+.workflow-examples { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; }
+.workflow-examples > span { color: #b5b5cc; font-size: 12px; }
+.workflow-query-original { white-space: pre-wrap; overflow-wrap: anywhere; color: #c0c0d6; font-size: 13px; }
+.workflow-identity { background: #1d1d2c; border-radius: 7px; padding: 4px 10px; margin-bottom: 16px; font-size: 12px; overflow-wrap: anywhere; }
+/* [추가] 모든 노드와 양쪽 분기를 카드로 표시하며 선택 여부를 색상과 텍스트로 함께 전달한다. */
+.workflow-plan { padding-left: 22px; margin: 16px 0; }
+.workflow-plan > li { margin-bottom: 10px; padding-left: 3px; }
+.workflow-plan > li::marker { color: #c4bfff; }
+.workflow-step { border: 1px solid #5a5a74; border-left: 3px solid #727293; border-radius: 8px; padding: 12px; background: #1d1d2b; min-width: 0; margin-bottom: 8px; overflow-wrap: anywhere; }
+.workflow-step p { font-size: 13px; margin: 8px 0 0; }
+.workflow-step-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.workflow-step-heading strong { font-size: 13px; }
+.workflow-id { display: block; margin-top: 4px; color: #b5b5cc; }
+.workflow-state-started { border-left-color: #e2c27e; }
+.workflow-state-completed { border-left-color: #77cfa6; }
+.workflow-state-skipped { border-left-style: dashed; border-left-color: #85859c; background: #242431; }
+.workflow-state-skipped .workflow-badge { color: #b8b8c9; }
+.workflow-state-failed { border-left-color: #f28ea1; }
+.workflow-branches { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+.workflow-branch { padding: 10px; border: 1px dashed #555570; border-radius: 7px; min-width: 0; }
+.workflow-branch .workflow-step { padding: 10px; }
+.workflow-branch .workflow-step:last-child { margin-bottom: 0; }
+.workflow-branch-selected { border: 1px solid #81cba8; background: #263933; }
+.workflow-condition-result { color: #a7e5c6; }
+.workflow-panel form.workflow-save { display: flex; align-items: flex-end; gap: 10px; padding: 14px 0; background: transparent; border-top: 1px solid #44445d; }
+.workflow-save label { flex: 1; font-size: 12px; }
+.workflow-save input { margin-top: 6px; }
+.workflow-execute { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.workflow-execute p { color: #b5b5cc; font-size: 12px; margin-bottom: 0; }
+.workflow-empty { color: #b9b9ce; padding: 30px 20px; }
+.workflow-empty h3 { font-weight: 500; }
+.workflow-empty p { font-size: 13px; margin-bottom: 0; }
+/* [추가] 작성 중·미확정 초안과 확정 보고의 영역·제목을 분리해 실패를 성공처럼 표시하지 않는다. */
+.workflow-outcome { font-size: 12px; color: #d8c9a4; }
+.workflow-outcome-completed { color: #a6e9c8; }
+.workflow-outcome-failed, .workflow-outcome-unknown { color: #ffc1cc; }
+.workflow-timeline { padding-left: 20px; font-size: 12px; max-height: 340px; overflow: auto; }
+.workflow-timeline li { padding: 5px 0; overflow-wrap: anywhere; }
+.workflow-draft { background: #312d37; border: 1px dashed #8e7e8f; padding: 8px 12px; border-radius: 8px; margin: 14px 0; }
+.workflow-draft summary { color: #e5c6d8; }
+.workflow-final { background: #1e302b; border: 1px solid #60866f; padding: 16px; border-radius: 8px; margin-top: 16px; }
+.workflow-final h4 { color: #ace7c6; }
+.workflow-final p { margin-top: 12px; margin-bottom: 0; }
+.workflow-metadata { display: flex; flex-wrap: wrap; gap: 12px 24px; padding: 14px 0; margin: 8px 0; border-bottom: 1px solid #45455f; font-size: 12px; }
+.workflow-metadata dt { color: #b4b4cc; }
+.workflow-metadata dd { margin: 4px 0 0; }
+.workflow-metadata small { display: block; font-size: 11px; margin-top: 3px; }
+.workflow-table-wrap { overflow-x: auto; margin: 12px 0; }
+.workflow-table { border-collapse: collapse; width: 100%; min-width: 440px; font-size: 12px; }
+.workflow-table caption { text-align: left; color: #b9b9d4; margin-bottom: 6px; }
+.workflow-table th, .workflow-table td { border: 1px solid #51516a; padding: 9px 10px; text-align: left; }
+.workflow-table th { background: #35354a; }
+.workflow-table tbody tr:nth-child(even) { background: #2c2c40; }
+.workflow-observation { padding: 10px; background: #1e1e2e; margin: 8px 0; border-radius: 6px; font-size: 12px; }
+.workflow-observation small { display: block; margin: 5px 0; }
+.workflow-observation ul { margin: 5px 0; padding-left: 18px; }
+.workflow-runbook { padding: 7px 12px; border: 1px solid #51516d; border-radius: 6px; margin: 8px 0; }
+.workflow-runbook summary { overflow-wrap: anywhere; }
+.workflow-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+/* [추가] 작은 화면은 단일 열로 배치하고 분기·저장 컨트롤도 폭에 맞춰 접는다. */
+@media (max-width: 850px) {
+  .workflow-panel { padding: 14px; }
+  .workflow-layout { grid-template-columns: minmax(0, 1fr); }
+  .workflow-saved-list { max-height: 220px; overflow: auto; }
+  .workflow-catalog { margin-top: 12px; }
+}
+@media (max-width: 560px) {
+  .workflow-panel { padding: 10px; }
+  .workflow-box { padding: 13px; }
+  .workflow-panel form.workflow-generate { padding: 13px; }
+  .workflow-branches { grid-template-columns: minmax(0, 1fr); }
+  .workflow-panel form.workflow-save, .workflow-execute { flex-direction: column; align-items: stretch; }
+  .workflow-save label { width: 100%; }
+  .workflow-step-heading { align-items: start; }
+  .workflow-step-heading .workflow-badge { font-size: 10px; }
+  .workflow-section-heading { align-items: start; }
+}

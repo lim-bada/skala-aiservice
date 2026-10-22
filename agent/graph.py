@@ -75,7 +75,8 @@ def _cost(state: AgentState, usage: dict) -> float:
 @traceable(name="route_node")
 async def route_node(state: AgentState, deps: SupervisorDeps) -> dict:
     """Wave 5 — 모든 쿼리가 무거운 파이프라인을 탈 필요는 없다."""
-    result, usage = deps.fast_llm.route(state["query"])
+    # [수정] 동기 모델 HTTP 대기를 분리해 일반 진단 중에도 health·워크플로 API가 응답하게 한다.
+    result, usage = await asyncio.to_thread(deps.fast_llm.route, state["query"])
     event = {"type": "RouteDecided", "route": result["route"]}
     return {"route": result["route"], "needs_analysis": result["needs_analysis"],
             "cost_usd": _cost(state, usage),
@@ -110,7 +111,8 @@ async def plan_node(state: AgentState, deps: SupervisorDeps) -> dict:
         {"system_name": _extract_system_name(state["query"]), "symptom": state["query"]},
         server=prompt_server,
     )
-    result, usage = deps.fast_llm.plan(state["query"], procedure)
+    # [수정] 기존 계획 결과는 유지하면서 네트워크 대기만 이벤트 루프 밖에서 수행한다.
+    result, usage = await asyncio.to_thread(deps.fast_llm.plan, state["query"], procedure)
     targets = [t["target"] for t in result["tasks"]
                if t["agent"] == "research" and t.get("target")]
     event = {"type": "PlanCreated", "task_count": len(result["tasks"]),
@@ -240,7 +242,8 @@ async def analysis_node(state: AgentState, deps: SupervisorDeps) -> dict:
     if not pending:
         return {"events": state["events"] +
                 [{"type": "AnalysisSkipped", "reason": "analysis task 0개"}]}
-    summary, usage = deps.fast_llm.analyze(state.get("collected", []))
+    # [수정] 분석용 동기 모델도 다른 요청을 막지 않도록 같은 방식으로 분리한다.
+    summary, usage = await asyncio.to_thread(deps.fast_llm.analyze, state.get("collected", []))
     new_tasks = [dict(t) for t in tasks]
     for t in new_tasks:
         if t["agent"] == "analysis" and t["status"] == "pending":

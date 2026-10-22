@@ -17,7 +17,38 @@ from pathlib import Path
 import httpx
 from langsmith import traceable
 
+# [추가] 기존 진단 호출과 분리된 워크플로 생성 계약·공통 프롬프트를 사용한다.
+from agent.workflow.models import WorkflowModelResponse, WorkflowModelUsage
+from agent.workflow.prompting import build_workflow_messages
+# [추가] 실제 조회한 런북 문단만 공통 요약 프롬프트로 구성한다.
+from agent.workflow.report_prompting import build_workflow_report_messages
+
 OLLAMA_URL = "http://127.0.0.1:11434/api/chat"
+
+
+# [추가] 생성·보고 응답에서 실측 사용량을 같은 규칙으로 추출하고 누락값을 보존한다.
+def _workflow_usage(data: dict, model_name: str) -> WorkflowModelUsage:
+    # [추가] bool·음수·문자열 카운트를 정수 토큰 사용량으로 오인하지 않는다.
+    def token_count(key: str) -> int | None:
+        value = data.get(key)
+        return value if type(value) is int and value >= 0 else None
+
+    input_tokens = token_count("prompt_eval_count")
+    output_tokens = token_count("eval_count")
+    total_tokens = (
+        input_tokens + output_tokens
+        if input_tokens is not None and output_tokens is not None
+        else None
+    )
+    return WorkflowModelUsage(
+        model=model_name,
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        total_tokens=total_tokens,
+        measurement="reported" if (
+            input_tokens is not None or output_tokens is not None
+        ) else "unavailable",
+    )
 
 
 def _load_known_systems() -> set[str]:
@@ -97,7 +128,9 @@ class OllamaLLM:
             "messages": [{"role": "system", "content": system},
                          {"role": "user", "content": user}],
             "stream": False,
-            "options": {"temperature": 0.0},
+            # [수정] 짧은 분류·계획·분석은 비추론 모드와 유한 출력으로 불필요한 대기를 줄인다.
+            "think": False,
+            "options": {"temperature": 0.0, "num_predict": 1024},
         }
         if schema is not None:
             payload["format"] = schema
@@ -147,6 +180,44 @@ class OllamaLLM:
 
 class OllamaFastLLM(OllamaLLM):
     """분류·계획·단순 대화 전담 (저사양 소형 모델)."""
+
+    # [추가] 개발용 로컬 모델에서 워크플로 원문을 비동기로 생성하고 실제 응답 상태를 전달한다.
+    @traceable(run_type="llm", name="ollama_fast.compile_workflow")
+    async def compile_workflow(
+        self,
+        query: str,
+        catalog: dict,
+        schema: dict,
+        errors: list[dict] | None = None,
+        previous_response: str | None = None,
+    ) -> WorkflowModelResponse:
+        payload = {
+            "model": self.model,
+            "messages": build_workflow_messages(
+                query, catalog, schema, errors=errors,
+                previous_response=previous_response,
+            ),
+            "stream": False,
+            "format": schema,
+            "think": False,
+            "options": {"temperature": 0, "num_predict": 4096},
+        }
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(OLLAMA_URL, json=payload)
+            response.raise_for_status()
+            data = response.json()
+
+        # [추가] 누락된 토큰 수는 None으로 유지하고 두 실측값이 있을 때만 합계를 구한다.
+        usage = _workflow_usage(data, self.name)
+
+        # [추가] 길이 제한 등 비정상 종료를 성공으로 처리하지 않고 원문을 그대로 반환한다.
+        content = data["message"].get("content")
+        return WorkflowModelResponse(
+            content="" if content is None else content,
+            usage=usage,
+            complete=data.get("done") is True
+            and data.get("done_reason", "stop") == "stop",
+        )
 
     @traceable(run_type="llm", name="ollama_fast.route")
     def route(self, query: str) -> tuple[dict, dict]:
@@ -237,6 +308,45 @@ class OllamaFastLLM(OllamaLLM):
 
 class OllamaQualityLLM(OllamaLLM):
     """최종 답변 작성 전담 (상대적으로 큰 모델)."""
+
+    # [추가] 개발용 런북 요약도 기존 write와 분리해 비동기 제한·완료 상태를 적용한다.
+    @traceable(run_type="llm", name="ollama_quality.write_workflow")
+    async def write_workflow(
+        self,
+        query: str,
+        collected: list[dict],
+        trace: list[dict],
+        attempt: int,
+        feedback: str | None,
+        on_token=None,
+    ) -> WorkflowModelResponse:
+        """응답 전체를 한 번 전달한다. 공급자의 토큰 단위 스트리밍 호출은 아니다."""
+        payload = {
+            "model": self.model,
+            "messages": build_workflow_report_messages(
+                query, collected, trace, attempt, feedback,
+            ),
+            "stream": False,
+            "think": False,
+            "options": {"temperature": 0, "num_predict": 4096},
+        }
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(OLLAMA_URL, json=payload)
+            response.raise_for_status()
+            data = response.json()
+
+        # [추가] 토큰 추정이나 문장 보정 없이 실제 응답과 정상 종료 여부를 반환한다.
+        content = data["message"].get("content")
+        result = WorkflowModelResponse(
+            content="" if content is None else content,
+            usage=_workflow_usage(data, self.name),
+            complete=data.get("done") is True
+            and data.get("done_reason", "stop") == "stop",
+        )
+        # [추가] 비어 있지 않은 보고 본문만 한 번 중계해 빈 말풍선 이벤트를 만들지 않는다.
+        if result.content.strip() and on_token is not None:
+            on_token(result.content)
+        return result
 
     @traceable(run_type="llm", name="ollama_quality.write")
     async def write(self, query: str, collected: list[dict], attempt: int,

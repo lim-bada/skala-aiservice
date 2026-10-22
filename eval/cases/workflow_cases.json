@@ -1,0 +1,1599 @@
+{
+  "schema_version": 1,
+  "snapshot_policy": "scenario snapshots override six fixed base snapshots; no jitter or forced failures",
+  "cases": [
+    {
+      "id": "dev_cpu_ge",
+      "split": "dev",
+      "query": "payments-service를 조회하고 CPU가 80% 이상이면 CPU 런북을, 아니면 메모리 런북을 확인해줘.",
+      "supported": true,
+      "expected_definition": {
+        "schema_version": 1,
+        "name": "dev_cpu_ge",
+        "steps": [
+          {
+            "id": "metrics",
+            "type": "monitoring",
+            "system": "payments-service"
+          },
+          {
+            "id": "branch",
+            "type": "if",
+            "condition": {
+              "ref": "metrics",
+              "field": "cpu_percent",
+              "op": ">=",
+              "value": 80
+            },
+            "then_steps": [
+              {
+                "id": "cpu",
+                "type": "runbook",
+                "incident_type": "cpu-spike"
+              }
+            ],
+            "else_steps": [
+              {
+                "id": "memory",
+                "type": "runbook",
+                "incident_type": "memory-leak"
+              }
+            ]
+          }
+        ]
+      },
+      "rejection_reason": null,
+      "scenarios": [
+        {
+          "id": "below",
+          "snapshots": {
+            "payments-service": {
+              "system_name": "payments-service",
+              "status": "degraded",
+              "cpu_percent": 79.9,
+              "memory_percent": 55.0,
+              "last_checked": "2026-10-21T00:00:00Z",
+              "alerts": []
+            }
+          },
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "payments-service"
+            },
+            {
+              "source": "runbook",
+              "target": "memory-leak"
+            }
+          ]
+        },
+        {
+          "id": "boundary",
+          "snapshots": {
+            "payments-service": {
+              "system_name": "payments-service",
+              "status": "degraded",
+              "cpu_percent": 80,
+              "memory_percent": 55.0,
+              "last_checked": "2026-10-21T00:00:00Z",
+              "alerts": [
+                "CPU usage 80%"
+              ]
+            }
+          },
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "payments-service"
+            },
+            {
+              "source": "runbook",
+              "target": "cpu-spike"
+            }
+          ]
+        },
+        {
+          "id": "above",
+          "snapshots": {
+            "payments-service": {
+              "system_name": "payments-service",
+              "status": "degraded",
+              "cpu_percent": 80.1,
+              "memory_percent": 55.0,
+              "last_checked": "2026-10-21T00:00:00Z",
+              "alerts": [
+                "CPU usage 80.1%"
+              ]
+            }
+          },
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "payments-service"
+            },
+            {
+              "source": "runbook",
+              "target": "cpu-spike"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dev_sequence",
+      "split": "dev",
+      "query": "auth-service를 먼저 조회하고 web-01을 조회해줘.",
+      "supported": true,
+      "expected_definition": {
+        "schema_version": 1,
+        "name": "dev_sequence",
+        "steps": [
+          {
+            "id": "metrics",
+            "type": "monitoring",
+            "system": "auth-service"
+          },
+          {
+            "id": "web",
+            "type": "monitoring",
+            "system": "web-01"
+          }
+        ]
+      },
+      "rejection_reason": null,
+      "scenarios": [
+        {
+          "id": "base",
+          "snapshots": {},
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "auth-service"
+            },
+            {
+              "source": "monitoring",
+              "target": "web-01"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dev_healthy",
+      "split": "dev",
+      "query": "payments-service를 조회하고 상태가 healthy면 종료하고, 아니면 CPU 런북을 확인해줘.",
+      "supported": true,
+      "expected_definition": {
+        "schema_version": 1,
+        "name": "dev_healthy",
+        "steps": [
+          {
+            "id": "metrics",
+            "type": "monitoring",
+            "system": "payments-service"
+          },
+          {
+            "id": "branch",
+            "type": "if",
+            "condition": {
+              "ref": "metrics",
+              "field": "status",
+              "op": "==",
+              "value": "healthy"
+            },
+            "then_steps": [],
+            "else_steps": [
+              {
+                "id": "book",
+                "type": "runbook",
+                "incident_type": "cpu-spike"
+              }
+            ]
+          }
+        ]
+      },
+      "rejection_reason": null,
+      "scenarios": [
+        {
+          "id": "healthy",
+          "snapshots": {
+            "payments-service": {
+              "system_name": "payments-service",
+              "status": "healthy",
+              "cpu_percent": 91.0,
+              "memory_percent": 55.0,
+              "last_checked": "2026-10-21T00:00:00Z",
+              "alerts": [
+                "CPU usage 91.0%"
+              ]
+            }
+          },
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "payments-service"
+            }
+          ]
+        },
+        {
+          "id": "degraded",
+          "snapshots": {
+            "payments-service": {
+              "system_name": "payments-service",
+              "status": "degraded",
+              "cpu_percent": 91.0,
+              "memory_percent": 55.0,
+              "last_checked": "2026-10-21T00:00:00Z",
+              "alerts": [
+                "CPU usage 91.0%"
+              ]
+            }
+          },
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "payments-service"
+            },
+            {
+              "source": "runbook",
+              "target": "cpu-spike"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dev_cpu_gt",
+      "split": "dev",
+      "query": "web-01을 조회해 CPU가 75%를 초과할 때만 high-latency 런북을 읽고, 그렇지 않으면 추가 조회 없이 끝내줘.",
+      "supported": true,
+      "expected_definition": {
+        "schema_version": 1,
+        "name": "dev_cpu_gt",
+        "steps": [
+          {
+            "id": "metrics",
+            "type": "monitoring",
+            "system": "web-01"
+          },
+          {
+            "id": "branch",
+            "type": "if",
+            "condition": {
+              "ref": "metrics",
+              "field": "cpu_percent",
+              "op": ">",
+              "value": 75
+            },
+            "then_steps": [
+              {
+                "id": "book",
+                "type": "runbook",
+                "incident_type": "high-latency"
+              }
+            ],
+            "else_steps": []
+          }
+        ]
+      },
+      "rejection_reason": null,
+      "scenarios": [
+        {
+          "id": "boundary",
+          "snapshots": {
+            "web-01": {
+              "system_name": "web-01",
+              "status": "healthy",
+              "cpu_percent": 75,
+              "memory_percent": 48.0,
+              "last_checked": "2026-10-21T00:00:00Z",
+              "alerts": []
+            }
+          },
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "web-01"
+            }
+          ]
+        },
+        {
+          "id": "above",
+          "snapshots": {
+            "web-01": {
+              "system_name": "web-01",
+              "status": "healthy",
+              "cpu_percent": 75.1,
+              "memory_percent": 48.0,
+              "last_checked": "2026-10-21T00:00:00Z",
+              "alerts": []
+            }
+          },
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "web-01"
+            },
+            {
+              "source": "runbook",
+              "target": "high-latency"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dev_memory_ge",
+      "split": "dev",
+      "query": "cache-service의 메모리가 85% 이상이면 memory-leak 런북을, 아니면 cpu-spike 런북을 읽어줘.",
+      "supported": true,
+      "expected_definition": {
+        "schema_version": 1,
+        "name": "dev_memory_ge",
+        "steps": [
+          {
+            "id": "metrics",
+            "type": "monitoring",
+            "system": "cache-service"
+          },
+          {
+            "id": "branch",
+            "type": "if",
+            "condition": {
+              "ref": "metrics",
+              "field": "memory_percent",
+              "op": ">=",
+              "value": 85
+            },
+            "then_steps": [
+              {
+                "id": "memory",
+                "type": "runbook",
+                "incident_type": "memory-leak"
+              }
+            ],
+            "else_steps": [
+              {
+                "id": "cpu",
+                "type": "runbook",
+                "incident_type": "cpu-spike"
+              }
+            ]
+          }
+        ]
+      },
+      "rejection_reason": null,
+      "scenarios": [
+        {
+          "id": "below",
+          "snapshots": {
+            "cache-service": {
+              "system_name": "cache-service",
+              "status": "degraded",
+              "cpu_percent": 42.0,
+              "memory_percent": 84.9,
+              "last_checked": "2026-10-21T00:00:00Z",
+              "alerts": [
+                "memory usage 84.9%"
+              ]
+            }
+          },
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "cache-service"
+            },
+            {
+              "source": "runbook",
+              "target": "cpu-spike"
+            }
+          ]
+        },
+        {
+          "id": "boundary",
+          "snapshots": {
+            "cache-service": {
+              "system_name": "cache-service",
+              "status": "degraded",
+              "cpu_percent": 42.0,
+              "memory_percent": 85,
+              "last_checked": "2026-10-21T00:00:00Z",
+              "alerts": [
+                "memory usage 85%"
+              ]
+            }
+          },
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "cache-service"
+            },
+            {
+              "source": "runbook",
+              "target": "memory-leak"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dev_memory_lt",
+      "split": "dev",
+      "query": "auth-service를 조회하고 메모리가 40% 미만이면 network-timeout 런북을, 아니면 high-latency 런북을 확인해줘.",
+      "supported": true,
+      "expected_definition": {
+        "schema_version": 1,
+        "name": "dev_memory_lt",
+        "steps": [
+          {
+            "id": "metrics",
+            "type": "monitoring",
+            "system": "auth-service"
+          },
+          {
+            "id": "branch",
+            "type": "if",
+            "condition": {
+              "ref": "metrics",
+              "field": "memory_percent",
+              "op": "<",
+              "value": 40
+            },
+            "then_steps": [
+              {
+                "id": "network",
+                "type": "runbook",
+                "incident_type": "network-timeout"
+              }
+            ],
+            "else_steps": [
+              {
+                "id": "latency",
+                "type": "runbook",
+                "incident_type": "high-latency"
+              }
+            ]
+          }
+        ]
+      },
+      "rejection_reason": null,
+      "scenarios": [
+        {
+          "id": "below",
+          "snapshots": {
+            "auth-service": {
+              "system_name": "auth-service",
+              "status": "degraded",
+              "cpu_percent": 78.0,
+              "memory_percent": 39.9,
+              "last_checked": "2026-10-21T00:00:00Z",
+              "alerts": []
+            }
+          },
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "auth-service"
+            },
+            {
+              "source": "runbook",
+              "target": "network-timeout"
+            }
+          ]
+        },
+        {
+          "id": "boundary",
+          "snapshots": {
+            "auth-service": {
+              "system_name": "auth-service",
+              "status": "degraded",
+              "cpu_percent": 78.0,
+              "memory_percent": 40,
+              "last_checked": "2026-10-21T00:00:00Z",
+              "alerts": []
+            }
+          },
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "auth-service"
+            },
+            {
+              "source": "runbook",
+              "target": "high-latency"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dev_status_ne",
+      "split": "dev",
+      "query": "gateway-service를 조회해 상태가 healthy가 아니면 db-down 런북을 읽고 healthy면 추가 조회를 하지 마.",
+      "supported": true,
+      "expected_definition": {
+        "schema_version": 1,
+        "name": "dev_status_ne",
+        "steps": [
+          {
+            "id": "metrics",
+            "type": "monitoring",
+            "system": "gateway-service"
+          },
+          {
+            "id": "branch",
+            "type": "if",
+            "condition": {
+              "ref": "metrics",
+              "field": "status",
+              "op": "!=",
+              "value": "healthy"
+            },
+            "then_steps": [
+              {
+                "id": "book",
+                "type": "runbook",
+                "incident_type": "db-down"
+              }
+            ],
+            "else_steps": []
+          }
+        ]
+      },
+      "rejection_reason": null,
+      "scenarios": [
+        {
+          "id": "healthy",
+          "snapshots": {
+            "gateway-service": {
+              "system_name": "gateway-service",
+              "status": "healthy",
+              "cpu_percent": 30.0,
+              "memory_percent": 45.0,
+              "last_checked": "2026-10-21T00:00:00Z",
+              "alerts": []
+            }
+          },
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "gateway-service"
+            }
+          ]
+        },
+        {
+          "id": "down",
+          "snapshots": {
+            "gateway-service": {
+              "system_name": "gateway-service",
+              "status": "down",
+              "cpu_percent": 30.0,
+              "memory_percent": 45.0,
+              "last_checked": "2026-10-21T00:00:00Z",
+              "alerts": [
+                "down"
+              ]
+            }
+          },
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "gateway-service"
+            },
+            {
+              "source": "runbook",
+              "target": "db-down"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dev_cpu_le",
+      "split": "dev",
+      "query": "log-service를 조회하고 CPU가 30% 이하이면 disk-full 런북을 읽고, 아니면 network-timeout 런북을 읽어줘.",
+      "supported": true,
+      "expected_definition": {
+        "schema_version": 1,
+        "name": "dev_cpu_le",
+        "steps": [
+          {
+            "id": "metrics",
+            "type": "monitoring",
+            "system": "log-service"
+          },
+          {
+            "id": "branch",
+            "type": "if",
+            "condition": {
+              "ref": "metrics",
+              "field": "cpu_percent",
+              "op": "<=",
+              "value": 30
+            },
+            "then_steps": [
+              {
+                "id": "disk",
+                "type": "runbook",
+                "incident_type": "disk-full"
+              }
+            ],
+            "else_steps": [
+              {
+                "id": "network",
+                "type": "runbook",
+                "incident_type": "network-timeout"
+              }
+            ]
+          }
+        ]
+      },
+      "rejection_reason": null,
+      "scenarios": [
+        {
+          "id": "boundary",
+          "snapshots": {
+            "log-service": {
+              "system_name": "log-service",
+              "status": "degraded",
+              "cpu_percent": 30,
+              "memory_percent": 35.0,
+              "last_checked": "2026-10-21T00:00:00Z",
+              "alerts": []
+            }
+          },
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "log-service"
+            },
+            {
+              "source": "runbook",
+              "target": "disk-full"
+            }
+          ]
+        },
+        {
+          "id": "above",
+          "snapshots": {
+            "log-service": {
+              "system_name": "log-service",
+              "status": "degraded",
+              "cpu_percent": 30.1,
+              "memory_percent": 35.0,
+              "last_checked": "2026-10-21T00:00:00Z",
+              "alerts": []
+            }
+          },
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "log-service"
+            },
+            {
+              "source": "runbook",
+              "target": "network-timeout"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dev_three_steps",
+      "split": "dev",
+      "query": "auth-service 모니터링을 조회하고 high-latency 런북을 읽은 다음 web-01 모니터링을 조회해줘. 이 순서를 지켜줘.",
+      "supported": true,
+      "expected_definition": {
+        "schema_version": 1,
+        "name": "dev_three_steps",
+        "steps": [
+          {
+            "id": "metrics",
+            "type": "monitoring",
+            "system": "auth-service"
+          },
+          {
+            "id": "book",
+            "type": "runbook",
+            "incident_type": "high-latency"
+          },
+          {
+            "id": "web",
+            "type": "monitoring",
+            "system": "web-01"
+          }
+        ]
+      },
+      "rejection_reason": null,
+      "scenarios": [
+        {
+          "id": "base",
+          "snapshots": {},
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "auth-service"
+            },
+            {
+              "source": "runbook",
+              "target": "high-latency"
+            },
+            {
+              "source": "monitoring",
+              "target": "web-01"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "holdout_cpu_eq",
+      "split": "holdout",
+      "query": "payments-service를 조회하고 CPU가 정확히 80%일 때 cpu-spike 런북, 그 외에는 memory-leak 런북을 읽어줘.",
+      "supported": true,
+      "expected_definition": {
+        "schema_version": 1,
+        "name": "holdout_cpu_eq",
+        "steps": [
+          {
+            "id": "metrics",
+            "type": "monitoring",
+            "system": "payments-service"
+          },
+          {
+            "id": "branch",
+            "type": "if",
+            "condition": {
+              "ref": "metrics",
+              "field": "cpu_percent",
+              "op": "==",
+              "value": 80
+            },
+            "then_steps": [
+              {
+                "id": "cpu",
+                "type": "runbook",
+                "incident_type": "cpu-spike"
+              }
+            ],
+            "else_steps": [
+              {
+                "id": "memory",
+                "type": "runbook",
+                "incident_type": "memory-leak"
+              }
+            ]
+          }
+        ]
+      },
+      "rejection_reason": null,
+      "scenarios": [
+        {
+          "id": "equal",
+          "snapshots": {
+            "payments-service": {
+              "system_name": "payments-service",
+              "status": "degraded",
+              "cpu_percent": 80,
+              "memory_percent": 55.0,
+              "last_checked": "2026-10-21T00:00:00Z",
+              "alerts": [
+                "CPU usage 80%"
+              ]
+            }
+          },
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "payments-service"
+            },
+            {
+              "source": "runbook",
+              "target": "cpu-spike"
+            }
+          ]
+        },
+        {
+          "id": "unequal",
+          "snapshots": {
+            "payments-service": {
+              "system_name": "payments-service",
+              "status": "degraded",
+              "cpu_percent": 80.1,
+              "memory_percent": 55.0,
+              "last_checked": "2026-10-21T00:00:00Z",
+              "alerts": [
+                "CPU usage 80.1%"
+              ]
+            }
+          },
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "payments-service"
+            },
+            {
+              "source": "runbook",
+              "target": "memory-leak"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "holdout_memory_ne",
+      "split": "holdout",
+      "query": "cache-service를 확인해 메모리가 50%가 아니면 memory-leak 런북을 읽고, 정확히 50%면 high-latency 런북을 읽어줘.",
+      "supported": true,
+      "expected_definition": {
+        "schema_version": 1,
+        "name": "holdout_memory_ne",
+        "steps": [
+          {
+            "id": "metrics",
+            "type": "monitoring",
+            "system": "cache-service"
+          },
+          {
+            "id": "branch",
+            "type": "if",
+            "condition": {
+              "ref": "metrics",
+              "field": "memory_percent",
+              "op": "!=",
+              "value": 50
+            },
+            "then_steps": [
+              {
+                "id": "memory",
+                "type": "runbook",
+                "incident_type": "memory-leak"
+              }
+            ],
+            "else_steps": [
+              {
+                "id": "latency",
+                "type": "runbook",
+                "incident_type": "high-latency"
+              }
+            ]
+          }
+        ]
+      },
+      "rejection_reason": null,
+      "scenarios": [
+        {
+          "id": "equal",
+          "snapshots": {
+            "cache-service": {
+              "system_name": "cache-service",
+              "status": "degraded",
+              "cpu_percent": 42.0,
+              "memory_percent": 50,
+              "last_checked": "2026-10-21T00:00:00Z",
+              "alerts": []
+            }
+          },
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "cache-service"
+            },
+            {
+              "source": "runbook",
+              "target": "high-latency"
+            }
+          ]
+        },
+        {
+          "id": "unequal",
+          "snapshots": {
+            "cache-service": {
+              "system_name": "cache-service",
+              "status": "degraded",
+              "cpu_percent": 42.0,
+              "memory_percent": 49.9,
+              "last_checked": "2026-10-21T00:00:00Z",
+              "alerts": []
+            }
+          },
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "cache-service"
+            },
+            {
+              "source": "runbook",
+              "target": "memory-leak"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "holdout_down",
+      "split": "holdout",
+      "query": "gateway-service 상태를 조회해서 down이면 db-down 런북을 읽고, down이 아니면 조회를 마쳐줘.",
+      "supported": true,
+      "expected_definition": {
+        "schema_version": 1,
+        "name": "holdout_down",
+        "steps": [
+          {
+            "id": "metrics",
+            "type": "monitoring",
+            "system": "gateway-service"
+          },
+          {
+            "id": "branch",
+            "type": "if",
+            "condition": {
+              "ref": "metrics",
+              "field": "status",
+              "op": "==",
+              "value": "down"
+            },
+            "then_steps": [
+              {
+                "id": "book",
+                "type": "runbook",
+                "incident_type": "db-down"
+              }
+            ],
+            "else_steps": []
+          }
+        ]
+      },
+      "rejection_reason": null,
+      "scenarios": [
+        {
+          "id": "down",
+          "snapshots": {
+            "gateway-service": {
+              "system_name": "gateway-service",
+              "status": "down",
+              "cpu_percent": 30.0,
+              "memory_percent": 45.0,
+              "last_checked": "2026-10-21T00:00:00Z",
+              "alerts": [
+                "down"
+              ]
+            }
+          },
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "gateway-service"
+            },
+            {
+              "source": "runbook",
+              "target": "db-down"
+            }
+          ]
+        },
+        {
+          "id": "degraded",
+          "snapshots": {
+            "gateway-service": {
+              "system_name": "gateway-service",
+              "status": "degraded",
+              "cpu_percent": 30.0,
+              "memory_percent": 45.0,
+              "last_checked": "2026-10-21T00:00:00Z",
+              "alerts": []
+            }
+          },
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "gateway-service"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "holdout_status_ne",
+      "split": "holdout",
+      "query": "auth-service를 조회해 상태가 degraded와 다르면 cpu-spike 런북을 확인하고, degraded면 추가 조회하지 마.",
+      "supported": true,
+      "expected_definition": {
+        "schema_version": 1,
+        "name": "holdout_status_ne",
+        "steps": [
+          {
+            "id": "metrics",
+            "type": "monitoring",
+            "system": "auth-service"
+          },
+          {
+            "id": "branch",
+            "type": "if",
+            "condition": {
+              "ref": "metrics",
+              "field": "status",
+              "op": "!=",
+              "value": "degraded"
+            },
+            "then_steps": [
+              {
+                "id": "book",
+                "type": "runbook",
+                "incident_type": "cpu-spike"
+              }
+            ],
+            "else_steps": []
+          }
+        ]
+      },
+      "rejection_reason": null,
+      "scenarios": [
+        {
+          "id": "healthy",
+          "snapshots": {
+            "auth-service": {
+              "system_name": "auth-service",
+              "status": "healthy",
+              "cpu_percent": 78.0,
+              "memory_percent": 61.0,
+              "last_checked": "2026-10-21T00:00:00Z",
+              "alerts": []
+            }
+          },
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "auth-service"
+            },
+            {
+              "source": "runbook",
+              "target": "cpu-spike"
+            }
+          ]
+        },
+        {
+          "id": "degraded",
+          "snapshots": {
+            "auth-service": {
+              "system_name": "auth-service",
+              "status": "degraded",
+              "cpu_percent": 78.0,
+              "memory_percent": 61.0,
+              "last_checked": "2026-10-21T00:00:00Z",
+              "alerts": []
+            }
+          },
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "auth-service"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "holdout_ref_second",
+      "split": "holdout",
+      "query": "auth-service를 먼저, web-01을 다음으로 조회해줘. 두 번째로 조회한 web-01의 CPU가 80% 이상일 때만 cpu-spike 런북을 읽어줘.",
+      "supported": true,
+      "expected_definition": {
+        "schema_version": 1,
+        "name": "holdout_ref_second",
+        "steps": [
+          {
+            "id": "auth",
+            "type": "monitoring",
+            "system": "auth-service"
+          },
+          {
+            "id": "metrics",
+            "type": "monitoring",
+            "system": "web-01"
+          },
+          {
+            "id": "branch",
+            "type": "if",
+            "condition": {
+              "ref": "metrics",
+              "field": "cpu_percent",
+              "op": ">=",
+              "value": 80
+            },
+            "then_steps": [
+              {
+                "id": "book",
+                "type": "runbook",
+                "incident_type": "cpu-spike"
+              }
+            ],
+            "else_steps": []
+          }
+        ]
+      },
+      "rejection_reason": null,
+      "scenarios": [
+        {
+          "id": "web_low",
+          "snapshots": {
+            "web-01": {
+              "system_name": "web-01",
+              "status": "healthy",
+              "cpu_percent": 79.9,
+              "memory_percent": 48.0,
+              "last_checked": "2026-10-21T00:00:00Z",
+              "alerts": []
+            }
+          },
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "auth-service"
+            },
+            {
+              "source": "monitoring",
+              "target": "web-01"
+            }
+          ]
+        },
+        {
+          "id": "web_high",
+          "snapshots": {
+            "web-01": {
+              "system_name": "web-01",
+              "status": "healthy",
+              "cpu_percent": 80,
+              "memory_percent": 48.0,
+              "last_checked": "2026-10-21T00:00:00Z",
+              "alerts": [
+                "CPU usage 80%"
+              ]
+            }
+          },
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "auth-service"
+            },
+            {
+              "source": "monitoring",
+              "target": "web-01"
+            },
+            {
+              "source": "runbook",
+              "target": "cpu-spike"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "holdout_branch_monitor",
+      "split": "holdout",
+      "query": "auth-service를 확인하고 CPU가 50% 미만이면 cache-service 모니터링을 조회하고, 아니면 high-latency 런북을 읽어줘.",
+      "supported": true,
+      "expected_definition": {
+        "schema_version": 1,
+        "name": "holdout_branch_monitor",
+        "steps": [
+          {
+            "id": "metrics",
+            "type": "monitoring",
+            "system": "auth-service"
+          },
+          {
+            "id": "branch",
+            "type": "if",
+            "condition": {
+              "ref": "metrics",
+              "field": "cpu_percent",
+              "op": "<",
+              "value": 50
+            },
+            "then_steps": [
+              {
+                "id": "cache",
+                "type": "monitoring",
+                "system": "cache-service"
+              }
+            ],
+            "else_steps": [
+              {
+                "id": "book",
+                "type": "runbook",
+                "incident_type": "high-latency"
+              }
+            ]
+          }
+        ]
+      },
+      "rejection_reason": null,
+      "scenarios": [
+        {
+          "id": "low",
+          "snapshots": {
+            "auth-service": {
+              "system_name": "auth-service",
+              "status": "degraded",
+              "cpu_percent": 49.9,
+              "memory_percent": 61.0,
+              "last_checked": "2026-10-21T00:00:00Z",
+              "alerts": []
+            }
+          },
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "auth-service"
+            },
+            {
+              "source": "monitoring",
+              "target": "cache-service"
+            }
+          ]
+        },
+        {
+          "id": "boundary",
+          "snapshots": {
+            "auth-service": {
+              "system_name": "auth-service",
+              "status": "degraded",
+              "cpu_percent": 50,
+              "memory_percent": 61.0,
+              "last_checked": "2026-10-21T00:00:00Z",
+              "alerts": []
+            }
+          },
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "auth-service"
+            },
+            {
+              "source": "runbook",
+              "target": "high-latency"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "holdout_empty_then_next",
+      "split": "holdout",
+      "query": "payments-service가 healthy면 그 분기에서는 추가 조회하지 말고, 아니면 memory-leak 런북을 읽어줘. 어느 분기든 마친 다음에는 web-01을 조회해줘.",
+      "supported": true,
+      "expected_definition": {
+        "schema_version": 1,
+        "name": "holdout_empty_then_next",
+        "steps": [
+          {
+            "id": "metrics",
+            "type": "monitoring",
+            "system": "payments-service"
+          },
+          {
+            "id": "branch",
+            "type": "if",
+            "condition": {
+              "ref": "metrics",
+              "field": "status",
+              "op": "==",
+              "value": "healthy"
+            },
+            "then_steps": [],
+            "else_steps": [
+              {
+                "id": "book",
+                "type": "runbook",
+                "incident_type": "memory-leak"
+              }
+            ]
+          },
+          {
+            "id": "web",
+            "type": "monitoring",
+            "system": "web-01"
+          }
+        ]
+      },
+      "rejection_reason": null,
+      "scenarios": [
+        {
+          "id": "healthy",
+          "snapshots": {
+            "payments-service": {
+              "system_name": "payments-service",
+              "status": "healthy",
+              "cpu_percent": 91.0,
+              "memory_percent": 55.0,
+              "last_checked": "2026-10-21T00:00:00Z",
+              "alerts": [
+                "CPU usage 91.0%"
+              ]
+            }
+          },
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "payments-service"
+            },
+            {
+              "source": "monitoring",
+              "target": "web-01"
+            }
+          ]
+        },
+        {
+          "id": "degraded",
+          "snapshots": {
+            "payments-service": {
+              "system_name": "payments-service",
+              "status": "degraded",
+              "cpu_percent": 91.0,
+              "memory_percent": 55.0,
+              "last_checked": "2026-10-21T00:00:00Z",
+              "alerts": [
+                "CPU usage 91.0%"
+              ]
+            }
+          },
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "payments-service"
+            },
+            {
+              "source": "runbook",
+              "target": "memory-leak"
+            },
+            {
+              "source": "monitoring",
+              "target": "web-01"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "holdout_six_nodes",
+      "split": "holdout",
+      "query": "payments-service를 조회하고 CPU가 80%를 넘으면 cpu-spike 런북을 읽은 뒤 web-01을 조회해줘. 넘지 않으면 memory-leak 런북을 읽은 뒤 auth-service를 조회해줘.",
+      "supported": true,
+      "expected_definition": {
+        "schema_version": 1,
+        "name": "holdout_six_nodes",
+        "steps": [
+          {
+            "id": "metrics",
+            "type": "monitoring",
+            "system": "payments-service"
+          },
+          {
+            "id": "branch",
+            "type": "if",
+            "condition": {
+              "ref": "metrics",
+              "field": "cpu_percent",
+              "op": ">",
+              "value": 80
+            },
+            "then_steps": [
+              {
+                "id": "cpu",
+                "type": "runbook",
+                "incident_type": "cpu-spike"
+              },
+              {
+                "id": "web",
+                "type": "monitoring",
+                "system": "web-01"
+              }
+            ],
+            "else_steps": [
+              {
+                "id": "memory",
+                "type": "runbook",
+                "incident_type": "memory-leak"
+              },
+              {
+                "id": "auth",
+                "type": "monitoring",
+                "system": "auth-service"
+              }
+            ]
+          }
+        ]
+      },
+      "rejection_reason": null,
+      "scenarios": [
+        {
+          "id": "boundary",
+          "snapshots": {
+            "payments-service": {
+              "system_name": "payments-service",
+              "status": "degraded",
+              "cpu_percent": 80,
+              "memory_percent": 55.0,
+              "last_checked": "2026-10-21T00:00:00Z",
+              "alerts": [
+                "CPU usage 80%"
+              ]
+            }
+          },
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "payments-service"
+            },
+            {
+              "source": "runbook",
+              "target": "memory-leak"
+            },
+            {
+              "source": "monitoring",
+              "target": "auth-service"
+            }
+          ]
+        },
+        {
+          "id": "above",
+          "snapshots": {
+            "payments-service": {
+              "system_name": "payments-service",
+              "status": "degraded",
+              "cpu_percent": 80.1,
+              "memory_percent": 55.0,
+              "last_checked": "2026-10-21T00:00:00Z",
+              "alerts": [
+                "CPU usage 80.1%"
+              ]
+            }
+          },
+          "expected_calls": [
+            {
+              "source": "monitoring",
+              "target": "payments-service"
+            },
+            {
+              "source": "runbook",
+              "target": "cpu-spike"
+            },
+            {
+              "source": "monitoring",
+              "target": "web-01"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "holdout_runbook_only",
+      "split": "holdout",
+      "query": "cpu-spike 런북부터 읽고, 다음에 memory-leak 런북을 읽어줘. 모니터링은 조회하지 마.",
+      "supported": true,
+      "expected_definition": {
+        "schema_version": 1,
+        "name": "holdout_runbook_only",
+        "steps": [
+          {
+            "id": "cpu",
+            "type": "runbook",
+            "incident_type": "cpu-spike"
+          },
+          {
+            "id": "memory",
+            "type": "runbook",
+            "incident_type": "memory-leak"
+          }
+        ]
+      },
+      "rejection_reason": null,
+      "scenarios": [
+        {
+          "id": "base",
+          "snapshots": {},
+          "expected_calls": [
+            {
+              "source": "runbook",
+              "target": "cpu-spike"
+            },
+            {
+              "source": "runbook",
+              "target": "memory-leak"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dev_loop",
+      "split": "dev",
+      "query": "payments-service 상태가 healthy가 될 때까지 10초마다 반복 조회해줘.",
+      "supported": false,
+      "expected_definition": null,
+      "rejection_reason": "반복·대기 루프 미지원",
+      "scenarios": [
+        {
+          "id": "no_calls",
+          "snapshots": {},
+          "expected_calls": []
+        }
+      ]
+    },
+    {
+      "id": "dev_unknown",
+      "split": "dev",
+      "query": "billing-service의 CPU와 상태를 조회해줘.",
+      "supported": false,
+      "expected_definition": null,
+      "rejection_reason": "미등록 시스템",
+      "scenarios": [
+        {
+          "id": "no_calls",
+          "snapshots": {},
+          "expected_calls": []
+        }
+      ]
+    },
+    {
+      "id": "dev_nested",
+      "split": "dev",
+      "query": "payments-service CPU가 80% 이상이면 그 안에서 메모리가 90% 이상인지 다시 조건을 걸고 memory-leak 런북을 읽어줘. 두 조건이 아니면 아무것도 하지 마.",
+      "supported": false,
+      "expected_definition": null,
+      "rejection_reason": "중첩 조건 미지원",
+      "scenarios": [
+        {
+          "id": "no_calls",
+          "snapshots": {},
+          "expected_calls": []
+        }
+      ]
+    },
+    {
+      "id": "holdout_restart",
+      "split": "holdout",
+      "query": "payments-service를 조회하고 CPU가 80% 이상이면 서비스를 재시작해줘.",
+      "supported": false,
+      "expected_definition": null,
+      "rejection_reason": "운영 상태 변경 미지원",
+      "scenarios": [
+        {
+          "id": "no_calls",
+          "snapshots": {},
+          "expected_calls": []
+        }
+      ]
+    },
+    {
+      "id": "holdout_logs",
+      "split": "holdout",
+      "query": "auth-service 최근 1시간 로그를 조회하고 에러 원인을 찾아줘.",
+      "supported": false,
+      "expected_definition": null,
+      "rejection_reason": "로그·시간 추세 조회 미지원",
+      "scenarios": [
+        {
+          "id": "no_calls",
+          "snapshots": {},
+          "expected_calls": []
+        }
+      ]
+    },
+    {
+      "id": "holdout_ambiguous",
+      "split": "holdout",
+      "query": "payments-service CPU가 높으면 적당한 런북을 읽어줘.",
+      "supported": false,
+      "expected_definition": null,
+      "rejection_reason": "임계값·런북 불명확",
+      "scenarios": [
+        {
+          "id": "no_calls",
+          "snapshots": {},
+          "expected_calls": []
+        }
+      ]
+    }
+  ]
+}

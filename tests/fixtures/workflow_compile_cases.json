@@ -1,0 +1,88 @@
+{
+  "payments-service를 조회하고 CPU가 80% 이상이면 CPU 런북을, 아니면 메모리 런북을 확인해줘.": {
+    "schema_version": 1,
+    "name": "결제 시스템 조건부 점검",
+    "steps": [
+      {
+        "id": "payment_metrics",
+        "type": "monitoring",
+        "system": "payments-service"
+      },
+      {
+        "id": "cpu_condition",
+        "type": "if",
+        "condition": {
+          "ref": "payment_metrics",
+          "field": "cpu_percent",
+          "op": ">=",
+          "value": 80
+        },
+        "then_steps": [
+          {
+            "id": "cpu_runbook",
+            "type": "runbook",
+            "incident_type": "cpu-spike"
+          }
+        ],
+        "else_steps": [
+          {
+            "id": "memory_runbook",
+            "type": "runbook",
+            "incident_type": "memory-leak"
+          }
+        ]
+      }
+    ]
+  },
+  "auth-service를 먼저 조회하고 web-01을 조회해줘.": {
+    "schema_version": 1,
+    "name": "인증과 웹 시스템 순차 조회",
+    "steps": [
+      {
+        "id": "auth_metrics",
+        "type": "monitoring",
+        "system": "auth-service"
+      },
+      {
+        "id": "web_metrics",
+        "type": "monitoring",
+        "system": "web-01"
+      }
+    ]
+  },
+  "payments-service를 조회하고 상태가 healthy면 종료하고, 아니면 CPU 런북을 확인해줘.": {
+    "schema_version": 1,
+    "name": "결제 시스템 정상 시 종료",
+    "steps": [
+      {
+        "id": "payment_metrics",
+        "type": "monitoring",
+        "system": "payments-service"
+      },
+      {
+        "id": "healthy_condition",
+        "type": "if",
+        "condition": {
+          "ref": "payment_metrics",
+          "field": "status",
+          "op": "==",
+          "value": "healthy"
+        },
+        "then_steps": [],
+        "else_steps": [
+          {
+            "id": "cpu_runbook",
+            "type": "runbook",
+            "incident_type": "cpu-spike"
+          }
+        ]
+      }
+    ]
+  },
+  "payments-service를 1분마다 정상화될 때까지 반복 조회해줘.": {
+    "unsupported_reason": "현재 워크플로는 순차 실행과 최상위 if/else만 지원하며 반복 또는 예약 조회는 지원하지 않습니다."
+  },
+  "billing-service를 조회해줘.": {
+    "unsupported_reason": "billing-service는 현재 카탈로그에 등록되지 않은 시스템입니다. 다른 시스템으로 대체하지 않고 요청 수정을 요구합니다."
+  }
+}
