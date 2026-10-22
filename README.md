@@ -229,6 +229,7 @@ CPU 경계값, 참/거짓·빈 분기, 잘못된 정의와 참조, 저장·재�
 
 ## 문서 안내
 
+<!-- [추가] 실측 토큰을 공식 단가로 환산한 비용 분석과 오프라인 계산기를 안내한다. -->
 | 문서 | 내용 |
 |---|---|
 | [과제 결과 보고서](doc/assignment1_report.md) | 개선·추가 task, 핵심 코드, 실제 캡처, 평가, 한계·회고 |
@@ -239,6 +240,7 @@ CPU 경계값, 참/거짓·빈 분기, 잘못된 정의와 참조, 저장·재�
 | [평가 방법](doc/workflow_evaluation.md) | 문항·고정 자료·지표·평가 실행 방법 |
 | [최초 OpenAI 비교 평가](doc/workflow_openai_results.md) | 초기 v1의 실측과 실패 사례 |
 | [후속 회귀 평가](doc/workflow_openai_regression_results.md) | 같은 문항을 활용한 보완 후 회귀 기록 |
+| [OpenAI 비용 분석](doc/workflow_cost_analysis.md) | 초기 전후 비교·회귀 기록의 토큰 기반 추정 비용과 계산 방법 |
 | [보고 정확성 보완](doc/workflow_report_accuracy.md) | 코드 작성 사실 보고·문단 참조 요약·검증 한계 |
 | [Ollama 생성 점검](doc/workflow_ollama_local.md) | 로컬 모델 선택과 조건부 생성 오류 점검 |
 | [5분 발표 구성](doc/assignment1_presentation_plan.md) | 기능·결과 2분과 코드 설명 3분 구성 |
