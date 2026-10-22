@@ -16,9 +16,6 @@ cd "$(dirname "$0")/.."
 # 경우가 있어, 이 프로젝트 전용 .venv가 있으면 PATH 맨 앞에 명시적으로 꽂아둔다.
 [ -x ".venv/bin/python3" ] && export PATH="$PWD/.venv/bin:$PATH"
 
-FAST_MODEL="${OLLAMA_FAST_MODEL:-qwen3:0.6b}"
-QUALITY_MODEL="${OLLAMA_QUALITY_MODEL:-qwen3:8b}"
-
 # ── 0) LangSmith 환경 ──────────────────────────────────────────────────
 if [ ! -f .env ]; then
     echo "ERROR: .env가 없습니다 — .env.example을 복사해 .env로 만들고 본인 API 키를 채워주세요."
@@ -26,6 +23,9 @@ if [ ! -f .env ]; then
     exit 1
 fi
 set -a; source .env; set +a
+# [수정] .env에서 지정한 모델로 설치 확인·웜업을 수행하고 서버 설정과 일치시킨다.
+FAST_MODEL="${OLLAMA_FAST_MODEL:-qwen3:0.6b}"
+QUALITY_MODEL="${OLLAMA_QUALITY_MODEL:-qwen3:8b}"
 export LANGCHAIN_PROJECT="capstone-all-total-ollama"   # fake 모드와 프로젝트 분리
 echo "LangSmith: project=$LANGCHAIN_PROJECT tracing=${LANGCHAIN_TRACING_V2:-}"
 echo "모델: fast=$FAST_MODEL / quality=$QUALITY_MODEL"

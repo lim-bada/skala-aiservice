@@ -1,4 +1,5 @@
 <!-- [추가] 조건부 워크플로 저장·미리보기·실행 API의 신규 사용 설명서 전체. -->
+<!-- [추가] 로컬 전용 점검 문서의 링크를 제거하고 공개 문서의 변경 설명은 유지한다. -->
 # 워크플로 API 사용법
 
 작성일: 2026-10-21. 코드 대조일: 2026-10-22. 기본 백엔드 주소는 `http://127.0.0.1:8100`이다.
@@ -119,7 +120,7 @@ SQLite 작업과 카탈로그 파일 읽기는 `asyncio.to_thread`로 수행한�
 | `WORKFLOW_MCP_RETRY_DELAY` | `0.3` | 재시도 기본 대기, 초 |
 | `OLLAMA_WORKFLOW_MODEL` | 현재 Ollama quality 모델(기본 `qwen3:8b`) | 일반 진단 fast와 분리한 워크플로 생성 모델 |
 
-서버는 기존 MCP 연결·보고 모델을 공유하고, Ollama의 워크플로 생성 모델은 별도로 선택한다. `/health`의 `workflow_llm`으로 실제 생성 모델을 확인할 수 있다. 기존 최초 호출 타임아웃 실습도 새 API에서는 일시적 오류 재시도로 처리하며, 영구 오류는 즉시 실패한다. 서비스 단독 생성자의 기본 시도 수는 1이다. [최초 OpenAI 평가](workflow_openai_results.md)에서 발견한 오류를 보완한 결과와 남은 한계는 [회귀 결과](workflow_openai_regression_results.md)에 기록했다. [Ollama 두 요청의 생성·분기 점검](workflow_ollama_local.md)은 별도 기록이며 전체 보고 품질 평가는 후속 항목이다.
+서버는 기존 MCP 연결·보고 모델을 공유하고, Ollama의 워크플로 생성 모델은 별도로 선택한다. `/health`의 `workflow_llm`으로 실제 생성 모델을 확인할 수 있다. 기존 최초 호출 타임아웃 실습도 새 API에서는 일시적 오류 재시도로 처리하며, 영구 오류는 즉시 실패한다. 서비스 단독 생성자의 기본 시도 수는 1이다. [최초 OpenAI 평가](workflow_openai_results.md)에서 발견한 오류를 보완한 결과와 남은 한계는 [회귀 결과](workflow_openai_regression_results.md)에 기록했다. Ollama 두 요청의 생성·분기 점검은 별도 기록이며 전체 보고 품질 평가는 후속 항목이다.
 
 <!-- [추가] 단위 테스트는 .env의 서버용 추적 설정과 분리해 외부 전송을 끈다. -->
 ```bash

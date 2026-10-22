@@ -21,17 +21,17 @@
 
 보고의 관측값·분기·조회 횟수는 코드가 작성하며, 런북을 읽은 경우에만 문단 참조 요약을 생성한다. [보고 정확성 보완](workflow_report_accuracy.md)을 참고한다.
 
-<!-- [추가] 과제 제출·화면 촬영·발표 구성 문서로 연결한다. -->
+<!-- [추가] 공개 저장소에 포함하는 과제 결과 보고서로 연결한다. -->
 
-과제 제출 자료는 [진행 보고서](assignment1_report.md), [화면 캡처 가이드](assignment1_capture_guide.md), [5분 발표 구성안](assignment1_presentation_plan.md)에 정리했다.
+과제 결과와 화면 증빙은 [결과 보고서](assignment1_report.md)에 정리했다.
 
 <!-- [추가] 로컬 소형 모델의 조건 왜곡을 재현하고 생성 모델을 분리한 변경으로 연결한다. -->
 
-Ollama의 워크플로 생성은 보고 모델과 같은 모델명(기본 `qwen3:8b`)을 별도의 생성 어댑터에서 사용하며 `OLLAMA_WORKFLOW_MODEL`로 재정의할 수 있다. 일반 진단 fast 모델은 기본 `qwen3:0.6b`다. [로컬 오류 재현·수정·재시작 방법](workflow_ollama_local.md)을 참고한다.
+Ollama의 워크플로 생성은 보고 모델과 같은 모델명(기본 `qwen3:8b`)을 별도의 생성 어댑터에서 사용하며 `OLLAMA_WORKFLOW_MODEL`로 재정의할 수 있다. 일반 진단 fast 모델은 기본 `qwen3:0.6b`다. 전환·재시작 방법은 [루트 README](../README.md)에 정리했다.
 
 <!-- [추가] 일반 진단 중 health·카탈로그·목록 정체의 원인과 수정·재시작 안내다. -->
 
-일반 진단 중 다른 API까지 시간 초과되던 문제는 [응답 정체 수정 기록](general_diagnosis_timeout.md)에 정리했다. 동기 모델 호출을 스레드로 분리했으며 적용하려면 백엔드와 웹 서버를 재시작한다.
+일반 진단 중 다른 API까지 지연되던 문제를 줄이기 위해 [일반 진단 그래프](../agent/graph.py)의 동기 모델 호출을 스레드로 분리했다. 적용하려면 백엔드와 웹 서버를 재시작한다.
 `http://localhost:8600`의 **조건부 워크플로** 탭에서 생성·미리보기·저장·실행할 수 있다. 아래 구성도는 기존 진단 경로를 설명한다.
 
 <!-- [추가] 현재 MCP 모니터링 데이터가 프로젝트의 모의 자료임을 명시한다. -->
@@ -322,11 +322,7 @@ all_total_vue/
 │   ├── workflow_openai_regression_results.md # [추가] 당시 v2/v3 회귀 기록
 │   ├── workflow_quality_improvements.md # [추가] 생성·실행·보고 검증 보완
 │   ├── workflow_report_accuracy.md # [추가] 코드 작성 사실 보고와 문단 참조 요약
-│   ├── workflow_ollama_local.md # [추가] Ollama 생성 오류 재현·모델 분리
-│   ├── general_diagnosis_timeout.md # [추가] 일반 진단 중 API 정체 보완
 │   ├── assignment1_report.md   # [추가] 제출 보고서
-│   ├── assignment1_capture_guide.md # [추가] 실제 화면 촬영 안내
-│   ├── assignment1_presentation_plan.md # [추가] 5분 발표 구성
 │   ├── image_usecase/           # manual_ollma.md 캡처 이미지
 │   └── image_usecase_openai/    # manual_openai.md 캡처 이미지
 ```

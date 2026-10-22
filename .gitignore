@@ -20,4 +20,10 @@ assignment1/
 !/doc/images/assignment1/
 !/doc/images/assignment1/*.png
 presentation/
+# [추가] 발표 준비용 구성안은 로컬에 보관하고 공개 저장소에서는 제외한다.
+/doc/assignment1_presentation_plan.md
+# [추가] 과제 촬영 안내와 개별 로컬 오류 점검 기록은 로컬 문서로 보관한다.
+/doc/assignment1_capture_guide.md
+/doc/general_diagnosis_timeout.md
+/doc/workflow_ollama_local.md
 *.pptx

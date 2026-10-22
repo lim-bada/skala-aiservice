@@ -1,4 +1,6 @@
 <!-- [추가] 새 파일 전체: 초기 결과를 보존하고 같은 문항으로 수행한 보완 후 회귀 평가를 기록한다. -->
+<!-- [추가] 로컬 전용 점검 문서의 링크를 제거하고 공개 문서의 변경 설명은 유지한다. -->
+<!-- [추가] GitHub 미포함 발표 자료·평가 원기록은 별도 자료 또는 로컬 경로로 표시한다. -->
 # OpenAI 보완 후 회귀 평가
 
 측정일: 2026-10-21. 문서 대조일: 2026-10-22. 최초 평가에서 확인한 실패를 보완한 뒤 **같은 24문항·40시나리오**를 다시 사용했다. 지원 18문항의 실행 시나리오는 34개이며 미지원은 6문항이다. 이 결과는 이미 확인한 문항의 회귀 평가로, 독립된 미관측 holdout 성능이 아니다. 수치·실패·소스 해시는 당시 원자료를 유지한다.
@@ -46,12 +48,12 @@ v3는 조건 예시의 불필요한 공통 후속 단계를 제거하고, 원문
 
 v3의 18개 지원 요청은 모두 최초 한 번의 생성으로 승인됐다. 34개 지원 실행은 보고까지 완료됐고, 미지원 6개는 생성 모델과 도메인 조회 모두 0회였다. 원본 정의를 저장·다시 읽었으며, 같은 문항의 후속 시나리오에는 저장된 정의를 새 관측값으로 실행했다. 무효 AST의 조회 전 차단 **12/12**도 유지된다.
 
-해당 회차의 전체 자동화 검증은 Python **357개**, Node **42개** 통과다. v1·v2·v3의 문항·fixture·카탈로그·런북 해시 및 모델 설정이 같음을 확인했다. 소스 해시는 평가기가 수집한 `agent/`, `prompts/`, `eval/`의 코드로 계산한다. 이후 [Ollama 생성 모델 분리와 오류 표시](workflow_ollama_local.md)는 별도 점검이며 이 OpenAI 회차의 측정 범위에 넣지 않는다.
+해당 회차의 전체 자동화 검증은 Python **357개**, Node **42개** 통과다. v1·v2·v3의 문항·fixture·카탈로그·런북 해시 및 모델 설정이 같음을 확인했다. 소스 해시는 평가기가 수집한 `agent/`, `prompts/`, `eval/`의 코드로 계산한다. 이후 Ollama 생성 모델 분리와 오류 표시는 별도 점검이며 이 OpenAI 회차의 측정 범위에 넣지 않는다.
 
 소스 SHA256: `ccde0b73875af6dec41001b64b56e81ad5b27c356b9170cc4e9d6385f78c72cc`.
 
 <!-- [추가] 이후 런타임 변경을 과거 평가와 구분한다. -->
-이후 [일반 진단의 응답 정체 수정](general_diagnosis_timeout.md)으로 현재 소스는 이 평가 시점과 달라졌다. 이 표는 위 해시의 과거 회귀 측정이며 수정 후 성능을 재측정한 결과가 아니다.
+이후 일반 진단의 응답 정체 수정으로 현재 소스는 이 평가 시점과 달라졌다. 이 표는 위 해시의 과거 회귀 측정이며 수정 후 성능을 재측정한 결과가 아니다.
 
 ### 보고의 남은 한계
 
@@ -77,10 +79,10 @@ v3의 18개 지원 요청은 모두 최초 한 번의 생성으로 승인됐다.
 
 ## 원자료와 재현
 
-- [최초 dev](../eval/results/openai-dev/results.json) · [최초 holdout](../eval/results/openai-holdout/results.json)
-- [v2 결과](../eval/results/openai-v2-regression/results.json) · [v2 자동 보고](../eval/results/openai-v2-regression/report.md)
-- [v3 결과](../eval/results/openai-v3-regression/results.json) · [v3 자동 보고](../eval/results/openai-v3-regression/report.md)
-- [회차별 합산과 동일 조건 확인](../eval/results/openai-regression-summary.json)
+- 최초 dev (`eval/results/openai-dev/results.json`, 로컬 산출물) · 최초 holdout (`eval/results/openai-holdout/results.json`, 로컬 산출물)
+- v2 결과 (`eval/results/openai-v2-regression/results.json`, 로컬 산출물) · v2 자동 보고 (`eval/results/openai-v2-regression/report.md`, 로컬 산출물)
+- v3 결과 (`eval/results/openai-v3-regression/results.json`, 로컬 산출물) · v3 자동 보고 (`eval/results/openai-v3-regression/report.md`, 로컬 산출물)
+- 회차별 합산과 동일 조건 확인 (`eval/results/openai-regression-summary.json`, 로컬 산출물)
 - [검사 코드·역할·한계](workflow_quality_improvements.md) · [평가 명령·지표](workflow_evaluation.md)
 
 <!-- [추가] 합산 당시 소스 일치 판정을 현재 프로젝트 상태로 오해하지 않게 한다. -->

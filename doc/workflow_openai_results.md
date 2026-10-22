@@ -1,4 +1,5 @@
 <!-- [추가] 새 파일 전체: 실제 OpenAI 측정 결과와 실패 사례를 원자료에 근거해 정리한다. -->
+<!-- [추가] GitHub 미포함 발표 자료·평가 원기록은 별도 자료 또는 로컬 경로로 표시한다. -->
 # 최초 OpenAI 비교 평가 결과
 
 <!-- [추가] 원래 실패와 수치는 보존하고 보완 후 같은 문항의 회귀 측정으로 연결한다. -->
@@ -78,10 +79,10 @@
 
 ## 원자료
 
-- [합산 JSON](../eval/results/openai-summary.json)
-- [dev 결과](../eval/results/openai-dev/results.json) · [dev 자동 보고](../eval/results/openai-dev/report.md)
-- [holdout 결과](../eval/results/openai-holdout/results.json) · [holdout 자동 보고](../eval/results/openai-holdout/report.md)
-- [소규모 연동 결과](../eval/results/openai-smoke-run/results.json)
+- 합산 JSON (`eval/results/openai-summary.json`, 로컬 산출물)
+- dev 결과 (`eval/results/openai-dev/results.json`, 로컬 산출물) · dev 자동 보고 (`eval/results/openai-dev/report.md`, 로컬 산출물)
+- holdout 결과 (`eval/results/openai-holdout/results.json`, 로컬 산출물) · holdout 자동 보고 (`eval/results/openai-holdout/report.md`, 로컬 산출물)
+- 소규모 연동 결과 (`eval/results/openai-smoke-run/results.json`, 로컬 산출물)
 - [평가 실행 방법·지표·한계](workflow_evaluation.md)
 
 원자료는 로컬 실행 산출물이며 소스·배포 zip에서는 제외한다. 이후 재실행은 새 출력 폴더를 사용해 이 결과를 덮어쓰지 않는다.

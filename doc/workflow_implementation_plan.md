@@ -1,4 +1,6 @@
 <!-- [추가] 조건부 장애 진단 워크플로를 위한 신규 구현 기획서 전체. -->
+<!-- [추가] 로컬 전용 점검 문서의 링크를 제거하고 공개 문서의 변경 설명은 유지한다. -->
+<!-- [추가] GitHub 미포함 발표 자료·평가 원기록은 별도 자료 또는 로컬 경로로 표시한다. -->
 # 자연어 기반 조건부 장애 진단 워크플로 구현 계획
 
 - 작성일: 2026-10-20
@@ -44,7 +46,7 @@
 - [x] [API 사용 설명](workflow_api.md)과 환경변수·Python 예시를 추가하고 DB·보조 파일을 소스 제외 목록에 등록.
 - [x] 실제 OpenAI 24문항·40시나리오 측정. 의미 13/18, 기대 경로 기존 7/34 → 개선 27/34, 미지원 명시적 거절 3/6.
 - [ ] Ollama의 여러 노드 조합·다른 모델/설치 버전까지 포함한 복합 JSON Schema·생성 품질 검증. 현재 설치 모델의 두 요청 정상 생성은 아래 별도 점검 범위다.
-- [x] [로컬 Ollama 오류 점검](workflow_ollama_local.md): 소형 생성 모델의 조건·노드 왜곡 재현, 생성 전용 모델 분리, 두 신고 요청의 8b 생성과 고정 관측값 네 경로 확인. 전체 모델 성능·스키마 범위 평가는 별도.
+- [x] 로컬 Ollama 오류 점검: 소형 생성 모델의 조건·노드 왜곡 재현, 생성 전용 모델 분리, 두 신고 요청의 8b 생성과 고정 관측값 네 경로 확인. 전체 모델 성능·스키마 범위 평가는 별도.
 - [x] `web/workflow.js`, `workflow.css`, `web_chat.html`: 별도 탭, 예시·카탈로그·저장 목록·조건 카드·실제 판단·건너뜀·초안/확정 보고·조회 자료 표시.
 - [x] `web/workflow_stream.js`: fetch POST의 UTF-8·SSE 분할 복원, HTTP 상태·종료 결과·DONE 검사, reader 취소·잠금 해제.
 - [x] `web_demo_server.py`: 7개 API·3개 고정 자산, 실행 전 HTTP 오류 보존, 원문 바이트 중계·중단 시 자원 정리.
@@ -64,7 +66,7 @@
 - [x] 같은 24문항으로 v2·v3 실제 API 회귀 평가. 최종 의미 18/18·경로 34/34·미지원 거절 6/6, 원자료·소스 해시 보존. 최초·중간 실패를 숨기지 않고 독립 holdout과 구분.
 - [ ] 다음 검증: 새 문항의 일반화 성능과 현재 문단 요약 계약의 의미·권고 전제 충실성. v3 자유 서술 보고의 현재값 미확인 모순 2건은 당시 실패 사례로 보존하며, 보완 후 계약의 OpenAI 재평가는 별도다.
 - [x] Ollama 전용 생성 모델·health 모델명과 최종 오류 목록 표시 보완 후 Python 364개·Node 45개 통과. 기존 일반 진단 모델 선택과 OpenAI/fake 생성 모델 유지.
-- [x] [일반 진단 응답 정체 수정](general_diagnosis_timeout.md): 동기 route·plan·analyze 스레드 분리, 짧은 Ollama 호출의 비추론·출력 제한, 프록시 오류 처리. 모델 대기 중 health·카탈로그·목록 응답과 실제 로컬 라우팅 확인. 전체 Python 370개·Node 45개 통과.
+- [x] 일반 진단 응답 정체 수정: 동기 route·plan·analyze 스레드 분리, 짧은 Ollama 호출의 비추론·출력 제한, 프록시 오류 처리. 모델 대기 중 health·카탈로그·목록 응답과 실제 로컬 라우팅 확인. 전체 Python 370개·Node 45개 통과.
 - [x] [보고 정확성 보완](workflow_report_accuracy.md): 관측·분기·조회 횟수 코드 출력, 런북 0건 모델 생략, 문단 참조 JSON·새 수치 검사, 검증된 보고만 중계, 요약 실패 시 `facts_report` 제공. Python 381개·Node 46개, 정답 AST의 고정 34개 보고 경로와 실제 로컬 Ollama 1건 확인. 새 보고 계약의 OpenAI 재평가는 미실행.
 
 정적 검증은 허용된 구조·자원·참조를 확인한다. 실행기는 실제 MCP 응답을 다시 검사한다. 최초 실측의 의도·거절 오류를 보완해 같은 문항의 최종 회귀는 통과했지만, 새 표현의 해석과 보고 사실성 전체는 보장하지 않는다. 보고의 `report_valid`는 완료 여부·형식·한정된 실행 근거 검사 결과이며 모든 수치·인과·표현의 검증을 뜻하지 않는다. 백엔드 API는 8100 포트, Vue 화면·웹 프록시는 8600 포트에서 제공한다. 전송 중단은 실행 완료 확인 불가로 표시하고 자동 재실행·이벤트 복원을 하지 않는다.
@@ -315,7 +317,7 @@ MCP 예외는 `MCP_ERROR`, 잘못된 모니터링·런북 응답은 `INVALID_MON
 
 prepare는 실행마다 상태를 초기화하고 정의를 검증한다. `identity.py`는 버전·steps만 정규화 JSON으로 SHA-256 해시해 표시 이름 변경과 실행 정의 변경을 구분한다. 조회·보고가 하나의 절대 deadline을 공유하고 보고 재작성마다 남은 시간만 사용한다. 검증 후 스케줄링이 지연돼도 finalize에서 기한을 다시 확인해 늦은 보고를 완료 처리하지 않는다. 외부 Task 취소는 그대로 전파한다.
 
-보고 브리지는 기존 `write_node` 계약을 유지하면서 새 `write_workflow()`에 수집 자료와 전체 trace의 사본을 전달한다. 모델 요청을 만드는 helper는 이 중 실제 런북 문단·ID와 시도 번호·검증 피드백만 사용하며 질문·모니터링·trace는 전송하지 않는다. 공통 노드의 `_cost`를 위한 내부 호환값 `usd=0.0`은 공개 비용으로 반환하지 않는다. 보고 사용량은 실제 `WorkflowModelUsage`를 시도별로 보존하고, 생성 사용량과 구분해 합산한다. 공통 노드는 LangGraph 실행 문맥 안에서만 호출한다. 일반 진단의 기존 보고 검증 정책은 유지한다. 이후 route·plan·analyze 호출의 스레드 분리 등 공통 경로 보완은 [일반 진단 응답 정체 수정](general_diagnosis_timeout.md)에 별도로 기록했다.
+보고 브리지는 기존 `write_node` 계약을 유지하면서 새 `write_workflow()`에 수집 자료와 전체 trace의 사본을 전달한다. 모델 요청을 만드는 helper는 이 중 실제 런북 문단·ID와 시도 번호·검증 피드백만 사용하며 질문·모니터링·trace는 전송하지 않는다. 공통 노드의 `_cost`를 위한 내부 호환값 `usd=0.0`은 공개 비용으로 반환하지 않는다. 보고 사용량은 실제 `WorkflowModelUsage`를 시도별로 보존하고, 생성 사용량과 구분해 합산한다. 공통 노드는 LangGraph 실행 문맥 안에서만 호출한다. 일반 진단의 기존 보고 검증 정책은 유지한다. 이후 route·plan·analyze 호출의 스레드 분리 등 공통 경로 보완은 일반 진단 응답 정체 수정에 별도로 기록했다.
 
 보고 검증은 모델 JSON의 문서·문단 참조와 근거 밖 수치를 검사한 뒤, 합성 보고의 정상 응답 완료, 앞뒤 공백을 제외한 최소 30자, 최대 12,000자, `1)`·`2)`·`3)` 순서를 검사한다. 런북을 읽은 경로의 보고 작성은 최초를 포함해 최대 3회이며, 미완성·형식·근거 오류로 재시도할 때 MCP 조회를 반복하지 않는다. 끝까지 실패하면 `REPORT_VALIDATION_FAILED`, `report_valid=false`, 빈 `final`로 반환하고 마지막 `draft`는 검토용으로 보존한다. 조회에 성공했다면 `facts_report`로 모델 요약 없는 사실 보고도 제공한다. 런북 0건의 코드 사실 보고가 형식 검사에 실패하면 모델 호출 없이 `REPORT_ERROR`로 종료한다. 모델 거절은 `REPORT_REFUSED`, 연동·응답 계약 오류는 `REPORT_ERROR`, 조회 실패는 `EXECUTION_FAILED`, 전체 기한 만료는 `WORKFLOW_TIMEOUT`이다. 오류에는 `input`·`execution`·`report` 단계가 들어간다. 실패한 조회와 이미 확보한 자료는 결과에 보존한다.
 
@@ -408,7 +410,7 @@ JSON·구조·자원·참조·의도 오류와 미완성 응답은 오류 목록
 
 `WorkflowCompilationResult`는 성공 여부·정의·오류·시도 목록·토큰 합계·경과 시간을 반환한다. 호출을 시작할 때 시도를 기록하므로 응답 이전 실패도 시도 수에 포함한다. 두 번의 생성 전체에 기본 120초 제한을 적용하고 외부 `CancelledError`는 전파한다. 시도별 `WorkflowModelUsage`는 `reported`·`estimated`·`unavailable`을 구분한다. 공급자가 제공하지 않은 카운트는 `None`이며, 시도 하나라도 해당 카운트가 없으면 합계도 `None`으로 남긴다. 호출이 없으면 합계는 0이다. 가상 USD를 실제 비용처럼 새로 계산하지 않는다.
 
-OpenAI 생성 어댑터는 기존 모델 설정·Chat Completions JSON 모드를 사용하고 `max_completion_tokens=4096`, `refusal`, `finish_reason`과 공급자 토큰 수를 처리한다. JSON 모드에서도 서버의 정적 검증을 거친다. 요청 형식과 종료 상태 처리는 [OpenAI 공식 JSON 모드 문서](https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=chat)와 [Chat Completions API 문서](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create)를 확인했다. Ollama 생성 어댑터는 `format`에 동일 응답 스키마, `think=false`, `num_predict=4096`을 전달하고 완료 여부와 실측 카운트를 보존한다. `$defs`·`oneOf`·최상위 `anyOf`를 포함한 이 스키마로 현재 설치된 `qwen3:8b`에서 두 요청의 정상 생성과 네 분기 경로를 확인했다. 이는 해당 로컬 점검 범위이며 모든 노드 조합·다른 모델·설치 버전의 생성 정확도나 호환성을 입증하지 않는다. [Ollama 로컬 점검](workflow_ollama_local.md)을 참고한다.
+OpenAI 생성 어댑터는 기존 모델 설정·Chat Completions JSON 모드를 사용하고 `max_completion_tokens=4096`, `refusal`, `finish_reason`과 공급자 토큰 수를 처리한다. JSON 모드에서도 서버의 정적 검증을 거친다. 요청 형식과 종료 상태 처리는 [OpenAI 공식 JSON 모드 문서](https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=chat)와 [Chat Completions API 문서](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create)를 확인했다. Ollama 생성 어댑터는 `format`에 동일 응답 스키마, `think=false`, `num_predict=4096`을 전달하고 완료 여부와 실측 카운트를 보존한다. `$defs`·`oneOf`·최상위 `anyOf`를 포함한 이 스키마로 현재 설치된 `qwen3:8b`에서 두 요청의 정상 생성과 네 분기 경로를 확인했다. 이는 해당 로컬 점검 범위이며 모든 노드 조합·다른 모델·설치 버전의 생성 정확도나 호환성을 입증하지 않는다. Ollama 로컬 점검을 참고한다.
 
 fake는 `tests/fixtures/workflow_compile_cases.json`의 정확한 query만 고정 응답으로 반환한다. 정상 예시 3개와 지원 거절 2개이며 미등록 문장도 명시적으로 거절한다. 이는 실제 자연어 해석 성능 검증이 아니다. 생성기와 각 어댑터에는 LangSmith 계측 코드가 있고, 서비스가 호출하는 실행 그래프에는 workflow/run 메타데이터를 연결한다. 실제 외부 추적 사용 여부는 서버 설정에 따르며 평가 CLI에서는 비활성화한다.
 
@@ -587,7 +589,7 @@ LLM 출력과 별개로 직접 작성한 AST·고정 응답을 사용한다.
 
 - [기존 프로젝트 설명](README.md)
 - [기존 회귀 질문](regression_test_queries.md)
-- [프로젝트 안내 PDF](<../AI 서비스 Mini Project_20261020.pdf>)
+- 프로젝트 안내 PDF(별도 배포 자료)
 - 구현 근거: `server.py`, `agent/graph.py`, 모델 어댑터 3종, `agent/mcp_client.py`, `web_demo_server.py`, `web_chat.html`.
 
 PDF의 진행 계획 예시는 필수 구현 목록이 아니다. 본 계획은 확정한 사용자 요구와 기존 일반 진단에 사용자 지정 조사 조건을 저장·실행하는 구조가 없다는 점을 기준으로 작성했다.

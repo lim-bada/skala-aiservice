@@ -22,7 +22,9 @@ rm -rf "/tmp/${NAME}"
 mkdir -p "/tmp/${NAME}"
 
 # [추가] 초안 원문·저장 절차가 담긴 워크플로 DB와 SQLite 보조 파일도 배포본에서 제외한다.
+# [수정] Git 이력·설정은 학생 배포 소스에 포함하지 않는다.
 rsync -a \
+  --exclude='.git' \
   --exclude='.venv' \
   --exclude='__pycache__' \
   --exclude='session.db' \
